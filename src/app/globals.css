@@ -1,0 +1,152 @@
+@import "tailwindcss";
+
+@theme {
+  /* Colors - Background */
+  --color-background-level0: #08090a;
+  --color-background-level1: #0f1011;
+  --color-background-level2: #141516;
+  --color-background-level3: #191a1b;
+  --color-background-primary: #08090a;
+  --color-background-secondary: #1c1c1f;
+  --color-background-tertiary: #232326;
+  --color-background-quaternary: #28282c;
+  --color-background-marketing: #010102;
+
+  /* Colors - Foreground */
+  --color-foreground-primary: #f7f8f8;
+  --color-foreground-secondary: #d0d6e0;
+  --color-foreground-tertiary: #8a8f98;
+  --color-foreground-quaternary: #62666d;
+
+  /* Colors - Accent (Bitcoin Orange) */
+  --color-accent-default: #F7931A;
+  /* Updated to Bitcoin Orange */
+  --color-accent-hover: #FFAE4B;
+  --color-accent-tint: #2A1D0B;
+
+  /* Colors - Border */
+  --color-border-primary: #23252a;
+  --color-border-secondary: #34343a;
+  --color-border-tertiary: #3e3e44;
+  --color-border-translucent: rgba(255, 255, 255, .05);
+
+  /* Colors - Semantic */
+  --color-semantic-blue: color(display-p3 .431 .6816 .9988);
+  --color-semantic-green: #4cb782;
+  --color-semantic-red: #eb5757;
+  --color-semantic-orange: #fc7840;
+  --color-semantic-yellow: #f2c94c;
+  --color-semantic-indigo: #5e6ad2;
+
+  /* Typography - Fonts */
+  --font-regular: "Inter Variable", "SF Pro Display", -apple-system, system-ui, sans-serif;
+  --font-mono: "Berkeley Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --font-serif: "Tiempos Headline", ui-serif, Georgia, serif;
+
+  /* Typography - Sizes */
+  --text-micro: 0.6875rem;
+  --text-mini: 0.75rem;
+  --text-small: 0.8125rem;
+  --text-regular: 0.9375rem;
+  --text-large: 1.125rem;
+  --text-title1: 2.25rem;
+  --text-title2: 1.5rem;
+  --text-title3: 1.25rem;
+
+  /* Typography - Weights */
+  --font-weight-light: 300;
+  --font-weight-normal: 400;
+  --font-weight-medium: 510;
+  --font-weight-semibold: 590;
+  --font-weight-bold: 680;
+
+  /* Border Radius */
+  --radius-4: 4px;
+  --radius-6: 6px;
+  --radius-8: 8px;
+  --radius-12: 12px;
+  --radius-16: 16px;
+  --radius-24: 24px;
+  --radius-32: 32px;
+  --radius-circle: 50%;
+  --radius-rounded: 9999px;
+
+  /* Shadows */
+  --shadow-low: 0px 2px 4px rgba(0, 0, 0, .1);
+  --shadow-medium: 0px 4px 24px rgba(0, 0, 0, .2);
+  --shadow-high: 0px 7px 32px rgba(0, 0, 0, .35);
+  --shadow-stack-low: 0px 8px 2px 0px transparent, 0px 5px 2px 0px rgba(0, 0, 0, .01), 0px 3px 2px 0px rgba(0, 0, 0, .04), 0px 1px 1px 0px rgba(0, 0, 0, .07), 0px 0px 1px 0px rgba(0, 0, 0, .08);
+
+  /* Animations - Easing */
+  --ease-in-out-cubic: cubic-bezier(.645, .045, .355, 1);
+  --ease-out-expo: cubic-bezier(.19, 1, .22, 1);
+  --ease-in-quad: cubic-bezier(.55, .085, .68, .53);
+
+  /* Animation - Speed (Duration uses --animate-*, but here just vars or standard transition utils) */
+  /* We can extend transition duration */
+  --duration-quick: 0.1s;
+  --duration-regular: 0.25s;
+
+  /* Spacing */
+  --spacing-page-padding-block: 64px;
+  --spacing-page-padding-inline: 24px;
+}
+
+body {
+  background-color: var(--color-background-level0);
+  color: var(--color-foreground-primary);
+  font-family: var(--font-regular);
+}
+
+/* Custom Utilities for Animations (simulating tailwindcss-animate) */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideInBottom {
+  from {
+    transform: translateY(1rem);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes zoomIn95 {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-in {
+  animation-duration: 0.5s;
+  animation-fill-mode: both;
+  animation-timing-function: var(--ease-out-expo);
+}
+
+.fade-in {
+  animation-name: fadeIn;
+}
+
+.slide-in-from-bottom-4 {
+  animation-name: slideInBottom;
+}
+
+.zoom-in-95 {
+  animation-name: zoomIn95;
+}
