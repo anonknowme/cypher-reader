@@ -1,36 +1,39 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Cypher Reader
 
-## Getting Started
+**비트코인과 영어, 두 마리 토끼를 한 번에.**
 
-First, run the development server:
+Cypher Reader는 비트코인의 철학이 담긴 원문들(백서, 에세이 등)을 읽으며 '진짜 영어'를 배우는 학습 서비스입니다.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## ⚡️ Mission: Proof of Work
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+우리는 "학습에는 지름길이 없다"고 믿습니다. 비트코인이 작업 증명(Proof of Work)을 통해 가치를 만들어내듯, 언어 학습 또한 여러분의 꾸준한 노력이 쌓여 완성됩니다.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Cypher Reader는 단순히 눈으로 보고 넘기는 학습이 아닌, 직접 듣고, 말하고, 쓰는 **적극적인 작업 증명** 과정을 통해 영어와 비트코인 지식을 여러분의 것으로 만들어드립니다.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 🚀 6단계 학습 시스템 (The Flow)
 
-## Learn More
+Cypher Reader의 핵심은 체계적인 6단계 파이프라인입니다. 각 단계는 이전 단계의 이해를 바탕으로 심화됩니다.
 
-To learn more about Next.js, take a look at the following resources:
+### 1단계: Context (배경 이해)
+무턱대고 원문부터 읽지 않습니다. 이 문장이 왜 중요한지, 어떤 맥락에서 나왔는지 핵심 개념과 배경 지식을 먼저 파악합니다.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### 2단계: Reading (원문 정독)
+엄선된 비트코인 원문을 읽습니다. 모르는 단어가 있어도 괜찮습니다. 토글 기능을 통해 단어의 뜻을 바로 확인하며 흐름을 놓치지 않고 읽어 내려갑니다.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### 3단계: Listening (청취 연습)
+원어민의 음성으로 글을 듣습니다. 오디오 싱크 기능을 통해 현재 들리는 문장을 눈으로 쫓으며 리듬과 억양을 익힙니다.
 
-## Deploy on Vercel
+### 4단계: Speaking (쉐도잉 & 녹음)
+이제 입을 열 차례입니다. 문장을 듣고 직접 따라 말하며 녹음해보세요. 내 발음을 다시 들어보며 교정하는 과정은 가장 강력한 말하기 훈련입니다.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### 5단계: Quiz (빈칸 채우기)
+제대로 이해했는지 검증(Verify)합니다. 핵심 키워드를 빈칸으로 비워둔 퀴즈를 풀며 문장 구조와 어휘를 완벽하게 습득했는지 확인합니다.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### 6단계: Writing (필사, Proof of Work)
+마지막 단계는 '쓰기'입니다. 문장을 한 글자 한 글자 직접 타이핑하며 따라 씁니다. 눈으로 보고 귀로 들었던 모든 내용을 손끝으로 완성하며, 완벽한 학습의 마침표를 찍습니다.
+
+---
+
+## ⚡️ Value 4 Value
+
+이 프로젝트는 가치에 가치로 보답하는 'Value 4 Value' 정신을 따릅니다. 학습이 도움이 되셨다면 라이트닝 네트워크를 통해 사토시(Sats)를 후원해주세요. 여러분의 후원은 더 좋은 콘텐츠를 만드는 힘이 됩니다.
