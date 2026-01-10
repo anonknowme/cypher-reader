@@ -98,6 +98,11 @@ export function LearnClient({ slug, lessonId, lessonData }: LearnClientProps) {
         setActiveStep(prev => Math.max(prev - 1, 1));
     };
 
+    // Auto-scroll to top when activeStep changes
+    useEffect(() => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, [activeStep]);
+
     // Helper to render text with valid word highlighting
     const renderKaraokeText = (text: string, currentIndex: number) => {
         const words = text.split(' ');
@@ -248,18 +253,21 @@ export function LearnClient({ slug, lessonId, lessonData }: LearnClientProps) {
                                     단어 뜻 {showDefinitions ? '숨기기' : '보기'}
                                 </button>
                             </div>
-                            <Card level="2" padding="large" className="border-accent-default/20 space-y-6">
+                            <Card level="2" padding="large" className="border-accent-default/20 space-y-8">
                                 {data.chunks.map((chunk, idx) => (
                                     <React.Fragment key={idx}>
-                                        <div className="grid md:grid-cols-[1fr,1.5fr] gap-4 items-start">
-                                            <p className="text-regular text-foreground-secondary font-medium pt-1">
-                                                {chunk.kr}
-                                            </p>
+                                        <div className="flex flex-col gap-3">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <Badge color="blue" variant="soft">끊어읽기 {idx + 1}</Badge>
+                                            </div>
                                             <p className="text-title3 font-serif text-foreground-primary leading-[3]">
                                                 {renderChunkWithVocab(chunk.en)}
                                             </p>
+                                            <p className="text-regular text-foreground-secondary font-medium pl-1 border-l-2 border-accent-default/20">
+                                                {chunk.kr}
+                                            </p>
                                         </div>
-                                        {idx < data.chunks.length - 1 && <div className="h-px bg-border-secondary/50" />}
+                                        {idx < data.chunks.length - 1 && <div className="h-px bg-border-primary border-t border-dashed" />}
                                     </React.Fragment>
                                 ))}
                             </Card>
@@ -302,6 +310,14 @@ export function LearnClient({ slug, lessonId, lessonData }: LearnClientProps) {
                                     "{data.original_text}"
                                 </p>
                             </Card>
+                            <div className="flex justify-center mt-4">
+                                <Button
+                                    variant="secondary"
+                                    onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                                >
+                                    위로 올라가서 녹음 끝내기 ⬆
+                                </Button>
+                            </div>
                         </section>
                     )}
 
@@ -405,13 +421,21 @@ export function LearnClient({ slug, lessonId, lessonData }: LearnClientProps) {
                                         input={level2Text}
                                     />
                                 </Card>
-                                <TextArea
-                                    autoFocus
-                                    placeholder="위 문장을 보면서 똑같이 따라 적어보세요..."
-                                    className="font-serif text-large"
-                                    value={level2Text}
-                                    onChange={(e) => setLevel2Text(e.target.value)}
-                                />
+                                {/* Sticky Input Area */}
+                                <div className="sticky bottom-4 z-10">
+                                    <div className="bg-background-level0/80 backdrop-blur-sm pt-2 pb-1 rounded-16 shadow-medium ring-1 ring-border-secondary">
+                                        <TextArea
+                                            autoFocus
+                                            placeholder="위 문장을 보면서 똑같이 따라 적어보세요..."
+                                            className="font-serif text-large bg-transparent border-none shadow-none focus:ring-0"
+                                            value={level2Text}
+                                            onChange={(e) => setLevel2Text(e.target.value)}
+                                        />
+                                    </div>
+                                    <div className="absolute top-0 right-0 p-2 opacity-50 text-mini pointer-events-none">
+                                        Input is Sticky
+                                    </div>
+                                </div>
                             </div>
                         </section>
                     )}
