@@ -1,8 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { Analytics } from "@vercel/analytics/next"
+import { Analytics } from "@vercel/analytics/next";
+import { LightningDonateButton } from "@/components/LightningDonateButton";
 import "./globals.css";
-
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -25,8 +25,6 @@ export const viewport: Viewport = {
   maximumScale: 1,
   interactiveWidget: "resizes-content",
 };
-
-import { LightningDonateButton } from "@/components/LightningDonateButton";
 
 
 
