@@ -16,7 +16,7 @@ export const TypingFeedback = ({ original, input, className = '', isBlankMode = 
                 let colorClass = 'text-foreground-tertiary'; // Default (not typed yet)
 
                 if (inputChar !== undefined) {
-                    if (inputChar === char) {
+                    if (inputChar.toLowerCase() === char.toLowerCase()) {
                         colorClass = 'text-semantic-green font-medium'; // Correct
                     } else {
                         colorClass = 'text-semantic-red bg-semantic-red/10'; // Typo

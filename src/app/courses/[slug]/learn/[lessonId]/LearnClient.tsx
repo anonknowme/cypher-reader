@@ -195,11 +195,13 @@ export function LearnClient({ slug, lessonId, lessonData }: LearnClientProps) {
         return parts.length > 0 ? parts : [text];
     };
 
-    // Refs for auto-scroll
+    // Refs for auto-scroll and focus management
     const chunkRefs = React.useRef<(HTMLDivElement | null)[]>([]);
+    const inputRefs = React.useRef<(HTMLTextAreaElement | null)[]>([]);
 
     useEffect(() => {
         chunkRefs.current = chunkRefs.current.slice(0, data.chunks.length);
+        inputRefs.current = inputRefs.current.slice(0, data.chunks.length);
     }, [data.chunks]);
 
     const handleChunkFocus = (index: number) => {
@@ -211,10 +213,12 @@ export function LearnClient({ slug, lessonId, lessonData }: LearnClientProps) {
         }
     };
 
-    // Check if all chunks match
+    // Check if all chunks match (Cleaned & Case-Insensitive)
     const isStep6Complete = data.chunks.every((chunk, idx) => {
         const userValue = chunkInputs[idx] || '';
-        return userValue.trim() === chunk.en.trim();
+        const cleanText = (str: string) => str.replace(/[^a-zA-Z0-9\s]/g, "");
+        const targetText = cleanText(chunk.en);
+        return userValue.toLowerCase().trim() === targetText.toLowerCase().trim();
     });
 
     const handleFinish = () => {
@@ -485,9 +489,18 @@ export function LearnClient({ slug, lessonId, lessonData }: LearnClientProps) {
 
                             <div className="space-y-4">
                                 {data.chunks.map((chunk, idx) => {
+                                    // Clean text: remove all non-alphanumeric characters (keep spaces)
+                                    const cleanText = (str: string) => str.replace(/[^a-zA-Z0-9\s]/g, "");
+
+                                    const targetText = cleanText(chunk.en);
                                     const userValue = chunkInputs[idx] || '';
-                                    const isMatch = userValue.trim() === chunk.en.trim();
-                                    const isStarted = userValue.length > 0;
+
+                                    // Case-insensitive comparison of cleaned text
+                                    // However, user input implies they effectively type the cleaned version?
+                                    // Actually, if we show clean text, user should type clean text.
+                                    // We will compare stricter: clean(user) === clean(target) 
+                                    // BUT user said "even if case doesn't match". 
+                                    const isMatch = userValue.toLowerCase().trim() === targetText.toLowerCase().trim();
 
                                     return (
                                         <div
@@ -498,20 +511,32 @@ export function LearnClient({ slug, lessonId, lessonData }: LearnClientProps) {
                                             <Card level="1" padding="medium" className={`transition-colors duration-300 ${isMatch ? 'border-semantic-green bg-semantic-green/5' : 'bg-background-secondary/30'}`}>
                                                 <div className="space-y-3">
                                                     <TypingFeedback
-                                                        original={chunk.en}
+                                                        original={targetText}
                                                         input={userValue}
                                                     />
                                                     <TextArea
-                                                        placeholder="위 문장을 따라 적으세요..."
+                                                        ref={el => { inputRefs.current[idx] = el }}
+                                                        placeholder={targetText}
                                                         className={`
                                                             font-serif text-large min-h-[60px] resize-none transition-all
                                                             ${isMatch ? 'border-semantic-green ring-1 ring-semantic-green/50' : ''}
                                                         `}
                                                         value={userValue}
                                                         onChange={(e) => {
+                                                            const newValue = e.target.value;
                                                             const newInputs = [...chunkInputs];
-                                                            newInputs[idx] = e.target.value;
+                                                            newInputs[idx] = newValue;
                                                             setChunkInputs(newInputs);
+
+                                                            // Auto-focus next input if match (case-insensitive)
+                                                            if (newValue.toLowerCase().trim() === targetText.toLowerCase().trim()) {
+                                                                const nextIdx = idx + 1;
+                                                                if (nextIdx < data.chunks.length) {
+                                                                    setTimeout(() => {
+                                                                        inputRefs.current[nextIdx]?.focus();
+                                                                    }, 100);
+                                                                }
+                                                            }
                                                         }}
                                                         onFocus={() => handleChunkFocus(idx)}
                                                     />
