@@ -408,7 +408,7 @@ export function LearnClient({ slug, lessonId, lessonData }: LearnClientProps) {
 
                     {/* Step 6: Copy Typing */}
                     {activeStep === 6 && (
-                        <section className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-[300px]">
+                        <section className="space-y-6 pb-[300px]">
                             <div className="flex items-center gap-2">
                                 <Badge color="gray" variant="outline">6단계</Badge>
                                 <h2 className="text-title3 font-bold">쓰기 (따라 쓰기)</h2>
@@ -421,18 +421,19 @@ export function LearnClient({ slug, lessonId, lessonData }: LearnClientProps) {
                                         input={level2Text}
                                     />
                                 </Card>
-                                {/* Fixed Input Area */}
-                                <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-background-level0 via-background-level0 to-transparent z-20">
-                                    <div className="max-w-2xl mx-auto">
-                                        <div className="bg-background-level0 shadow-medium ring-1 ring-border-secondary rounded-16 overflow-hidden">
-                                            <TextArea
-                                                autoFocus
-                                                placeholder="위 문장을 보면서 똑같이 따라 적어보세요..."
-                                                className="font-serif text-large bg-transparent border-none shadow-none focus:ring-0 min-h-[120px] resize-none"
-                                                value={level2Text}
-                                                onChange={(e) => setLevel2Text(e.target.value)}
-                                            />
-                                        </div>
+                                {/* Sticky Input Area */}
+                                <div className="sticky bottom-0 z-10 pt-4 pb-4 bg-gradient-to-t from-background-level0 via-background-level0 to-transparent">
+                                    <div className="bg-background-level0/80 backdrop-blur-sm pt-2 pb-1 rounded-16 shadow-medium ring-1 ring-border-secondary">
+                                        <TextArea
+                                            autoFocus
+                                            placeholder="위 문장을 보면서 똑같이 따라 적어보세요..."
+                                            className="font-serif text-large bg-transparent border-none shadow-none focus:ring-0"
+                                            value={level2Text}
+                                            onChange={(e) => setLevel2Text(e.target.value)}
+                                        />
+                                    </div>
+                                    <div className="absolute top-0 right-0 p-2 opacity-50 text-mini pointer-events-none">
+                                        Input is Sticky
                                     </div>
                                 </div>
                             </div>
