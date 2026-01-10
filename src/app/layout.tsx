@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Cypher Reader",
-  description: "Learn English with Bitcoin",
+  description: "비트코인을 영어 원문으로 직접 읽고, 듣고, 말하면서 공부하세요!",
 };
 
 export const viewport: Viewport = {
