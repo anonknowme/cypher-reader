@@ -10,7 +10,7 @@ import { AudioPlayer } from '@/components/AudioPlayer';
 import { TextArea } from '@/components/TextArea';
 import { VoiceRecorder } from '@/components/VoiceRecorder';
 import { TypingFeedback } from '@/components/TypingFeedback';
-import { generateLessonContent } from '@/actions/lesson-actions';
+// import { generateLessonContent } from '@/actions/lesson-actions'; // Removed
 
 // Define Types for our Lesson Data
 interface LessonData {
@@ -18,7 +18,7 @@ interface LessonData {
     translation_kr: string;
     context_desc: string;
     chunks: { en: string; kr: string }[];
-    vocabulary: { word: string; definition: string }[];
+    vocabulary: { word: string; lemma?: string; definition: string }[];
     quiz: {
         segments: { type: string; content: string; id?: number }[];
         correctAnswers: string[];
@@ -39,15 +39,46 @@ export default function PrototypePage() {
 
     // Fetch Data on Mount
     useEffect(() => {
-        async function fetchData() {
-            setIsLoading(true);
-            const lessonData = await generateLessonContent(sourceSentence);
-            if (lessonData) {
-                setData(lessonData);
+        // Mock Data since generateLessonContent is removed
+        const mockData: LessonData = {
+            original_text: sourceSentence,
+            translation_kr: "순수 P2P 버전의 전자 화폐는 금융 기관을 거치지 않고 한 당사자에서 다른 당사자로 직접 온라인 결제를 보낼 수 있게 해줍니다.",
+            context_desc: "비트코인 백서의 첫 문장으로, 중개인 없는 직접 거래의 가능성을 설명합니다.",
+            chunks: [
+                { en: "A purely peer-to-peer version", kr: "순수 P2P 버전의" },
+                { en: "of electronic cash", kr: "전자 화폐는" },
+                { en: "would allow online payments", kr: "온라인 결제를 가능하게 합니다" },
+                { en: "to be sent directly", kr: "직접 전송되도록" },
+                { en: "from one party to another", kr: "한 당사자에서 다른 당사자로" },
+                { en: "without going through", kr: "거치지 않고" },
+                { en: "a financial institution.", kr: "금융 기관을" }
+            ],
+            vocabulary: [
+                { word: "purely", definition: "순수하게, 전적으로" },
+                { word: "peer-to-peer", definition: "P2P (동등 계층간 통신)" },
+                { word: "electronic cash", definition: "전자 화폐" },
+                { word: "financial institution", definition: "금융 기관" }
+            ],
+            quiz: {
+                segments: [
+                    { type: "text", content: "A purely " },
+                    { type: "blank", content: "", id: 0 },
+                    { type: "text", content: " version of " },
+                    { type: "blank", content: "", id: 1 },
+                    { type: "text", content: " would allow online payments to be sent directly from one party to another without going through a " },
+                    { type: "blank", content: "", id: 2 },
+                    { type: "text", content: "." }
+                ],
+                correctAnswers: ["peer-to-peer", "electronic cash", "financial institution"],
+                distractors: ["centralized", "digital signature", "trusted third party"]
             }
+        };
+
+        // Simulate delay
+        setTimeout(() => {
+            setData(mockData);
             setIsLoading(false);
-        }
-        fetchData();
+        }, 1000);
     }, []);
 
     // Lifted State
