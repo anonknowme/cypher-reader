@@ -33,42 +33,61 @@ export function LearnClient({ slug, lessonId, lessonData }: LearnClientProps) {
     const [highlightIndex, setHighlightIndex] = useState<number>(-1);
 
     // Quiz State
-    const [filledBlanks, setFilledBlanks] = useState<(string | null)[]>([null, null, null]);
-    const [shuffledOptions, setShuffledOptions] = useState<string[]>([]);
+    // We need to handle multiple quizzes.
+    // If legacy 'quiz' exists, treat as single item array.
+    const quizzes = data.quizzes || (data.quiz ? [data.quiz] : []);
+    const [activeQuizIndex, setActiveQuizIndex] = useState(0);
+
+    // Track state for ALL quizzes
+    // Map of quizIndex -> { filledBlanks: string[], options: string[] }
+    type QuizState = { filledBlanks: (string | null)[], options: string[] };
+    const [quizStates, setQuizStates] = useState<QuizState[]>([]);
 
     // Initialize quiz options when data loads
     useEffect(() => {
-        if (data && data.quiz) {
-            const allOptions = [...data.quiz.correctAnswers, ...data.quiz.distractors].sort(() => Math.random() - 0.5);
-            setShuffledOptions(allOptions);
-            setFilledBlanks(new Array(data.quiz.correctAnswers.length).fill(null));
+        if (quizzes.length > 0) {
+            const initialStates = quizzes.map(q => ({
+                filledBlanks: new Array(q.correctAnswers.length).fill(null),
+                options: [...q.correctAnswers, ...q.distractors].sort(() => Math.random() - 0.5)
+            }));
+            setQuizStates(initialStates);
         }
-    }, [data]);
+    }, [data]); // Re-run if data changes
 
-    // Scroll to top on step change
-    useEffect(() => {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    }, [activeStep]);
+    // Get current active quiz state
+    const currentQuiz = quizzes[activeQuizIndex];
+    const currentQuizState = quizStates[activeQuizIndex];
+
+    // Check completion
+    const isCurrentQuizComplete = currentQuiz && currentQuizState && currentQuiz.correctAnswers.every((ans, i) => currentQuizState.filledBlanks[i] === ans);
+    const isAllQuizzesComplete = quizzes.length > 0 && quizStates.length === quizzes.length && quizzes.every((q, qIdx) => {
+        const state = quizStates[qIdx];
+        return state && q.correctAnswers.every((ans, aIdx) => state.filledBlanks[aIdx] === ans);
+    });
 
     const handleOptionClick = (word: string) => {
-        const firstEmptyIndex = filledBlanks.findIndex(b => b === null);
+        if (!currentQuizState) return;
+        const firstEmptyIndex = currentQuizState.filledBlanks.findIndex(b => b === null);
         if (firstEmptyIndex !== -1) {
-            const newBlanks = [...filledBlanks];
+            const newBlanks = [...currentQuizState.filledBlanks];
             newBlanks[firstEmptyIndex] = word;
-            setFilledBlanks(newBlanks);
+
+            const newStates = [...quizStates];
+            newStates[activeQuizIndex] = { ...currentQuizState, filledBlanks: newBlanks };
+            setQuizStates(newStates);
         }
     };
 
     const handleBlankClick = (index: number) => {
-        if (filledBlanks[index] !== null) {
-            const newBlanks = [...filledBlanks];
+        if (!currentQuizState || currentQuizState.filledBlanks[index] !== null) {
+            const newBlanks = [...currentQuizState.filledBlanks];
             newBlanks[index] = null;
-            setFilledBlanks(newBlanks);
+
+            const newStates = [...quizStates];
+            newStates[activeQuizIndex] = { ...currentQuizState, filledBlanks: newBlanks };
+            setQuizStates(newStates);
         }
     };
-
-    const { quiz } = data;
-    const isQuizComplete = filledBlanks.every((b, i) => b === quiz.correctAnswers[i]);
 
     const nextStep = () => {
         setHighlightIndex(-1);
@@ -289,62 +308,85 @@ export function LearnClient({ slug, lessonId, lessonData }: LearnClientProps) {
                     {/* Step 5: Quiz */}
                     {activeStep === 5 && (
                         <section className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                            <div className="flex items-center gap-2">
-                                <Badge color="gray" variant="outline">5단계</Badge>
-                                <h2 className="text-title3 font-bold">쓰기 (빈칸 퀴즈)</h2>
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <Badge color="gray" variant="outline">5단계</Badge>
+                                    <h2 className="text-title3 font-bold">쓰기 (빈칸 퀴즈)</h2>
+                                </div>
+                                <Badge color="blue" variant="soft">{activeQuizIndex + 1} / {quizzes.length}</Badge>
                             </div>
 
-                            <div className="space-y-6">
-                                <Card level="1" padding="medium" className={`bg-background-secondary/50 min-h-[120px] flex items-center justify-center transition-colors duration-300 ${isQuizComplete ? 'border-semantic-green bg-semantic-green/5' : ''}`}>
-                                    <p className="text-large font-serif leading-loose text-foreground-primary text-center">
-                                        {quiz.segments.map((seg, i) => {
-                                            if (seg.type === 'text') return <span key={i}>{seg.content}</span>;
-                                            const id = seg.id !== undefined ? seg.id : -1;
-                                            const isFilled = filledBlanks[id] !== null;
-                                            const isCorrect = filledBlanks[id] === quiz.correctAnswers[id];
+                            {currentQuiz && currentQuizState ? (
+                                <div className="space-y-6">
+                                    <Card level="1" padding="medium" className={`bg-background-secondary/50 min-h-[120px] flex items-center justify-center transition-colors duration-300 ${isCurrentQuizComplete ? 'border-semantic-green bg-semantic-green/5' : ''}`}>
+                                        <p className="text-large font-serif leading-loose text-foreground-primary text-center">
+                                            {currentQuiz.segments.map((seg, i) => {
+                                                if (seg.type === 'text') return <span key={i}>{seg.content}</span>;
+                                                const id = seg.id !== undefined ? seg.id : -1;
+                                                const isFilled = currentQuizState.filledBlanks[id] !== null;
+                                                const isCorrect = currentQuizState.filledBlanks[id] === currentQuiz.correctAnswers[id];
 
-                                            return (
-                                                <button
-                                                    key={i}
-                                                    onClick={() => handleBlankClick(id)}
-                                                    className={`
+                                                return (
+                                                    <button
+                                                        key={i}
+                                                        onClick={() => handleBlankClick(id)}
+                                                        className={`
                                                         inline-block min-w-[80px] border-b-2 mx-1 px-2 text-center transition-all
                                                         ${isFilled
-                                                            ? (isCorrect ? 'border-semantic-green text-semantic-green font-bold' : 'border-semantic-red text-semantic-red')
-                                                            : 'border-foreground-tertiary/50 text-foreground-tertiary bg-background-tertiary/50'}
+                                                                ? (isCorrect ? 'border-semantic-green text-semantic-green font-bold' : 'border-semantic-red text-semantic-red')
+                                                                : 'border-foreground-tertiary/50 text-foreground-tertiary bg-background-tertiary/50'}
                                                     `}
-                                                >
-                                                    {filledBlanks[id] || "_"}
-                                                </button>
-                                            );
-                                        })}
-                                    </p>
-                                </Card>
+                                                    >
+                                                        {currentQuizState.filledBlanks[id] || "_"}
+                                                    </button>
+                                                );
+                                            })}
+                                        </p>
+                                    </Card>
 
-                                <div className="bg-background-level2 p-4 rounded-16 border border-border-secondary">
-                                    <p className="text-small text-foreground-tertiary mb-3 text-center">빈칸에 들어갈 단어를 순서대로 채우세요</p>
-                                    <div className="flex flex-wrap gap-2 justify-center">
-                                        {shuffledOptions.map((option, idx) => {
-                                            const isUsed = filledBlanks.includes(option);
-                                            return (
-                                                <button
-                                                    key={idx}
-                                                    onClick={() => !isUsed && handleOptionClick(option)}
-                                                    disabled={isUsed}
-                                                    className={`
+                                    <div className="bg-background-level2 p-4 rounded-16 border border-border-secondary">
+                                        <p className="text-small text-foreground-tertiary mb-3 text-center">빈칸에 들어갈 단어를 순서대로 채우세요</p>
+                                        <div className="flex flex-wrap gap-2 justify-center">
+                                            {currentQuizState.options.map((option, idx) => {
+                                                const isUsed = currentQuizState.filledBlanks.includes(option);
+                                                return (
+                                                    <button
+                                                        key={idx}
+                                                        onClick={() => !isUsed && handleOptionClick(option)}
+                                                        disabled={isUsed}
+                                                        className={`
                                                         px-4 py-2 rounded-full text-regular font-medium font-serif border transition-all
                                                         ${isUsed
-                                                            ? 'bg-background-tertiary text-foreground-tertiary border-transparent opacity-50 cursor-not-allowed'
-                                                            : 'bg-background-level1 text-foreground-primary border-border-primary hover:border-accent-default hover:text-accent-default shadow-low'}
+                                                                ? 'bg-background-tertiary text-foreground-tertiary border-transparent opacity-50 cursor-not-allowed'
+                                                                : 'bg-background-level1 text-foreground-primary border-border-primary hover:border-accent-default hover:text-accent-default shadow-low'}
                                                     `}
-                                                >
-                                                    {option}
-                                                </button>
-                                            );
-                                        })}
+                                                    >
+                                                        {option}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <Button
+                                            variant="secondary"
+                                            onClick={() => setActiveQuizIndex(Math.max(0, activeQuizIndex - 1))}
+                                            disabled={activeQuizIndex === 0}
+                                        >
+                                            Prev Quiz
+                                        </Button>
+                                        <Button
+                                            variant={isCurrentQuizComplete ? 'primary' : 'ghost'}
+                                            onClick={() => setActiveQuizIndex(Math.min(quizzes.length - 1, activeQuizIndex + 1))}
+                                            disabled={activeQuizIndex === quizzes.length - 1 || !isCurrentQuizComplete}
+                                        >
+                                            Next Quiz
+                                        </Button>
                                     </div>
                                 </div>
-                            </div>
+                            ) : (
+                                <p>No Quiz Data</p>
+                            )}
                         </section>
                     )}
 
@@ -386,7 +428,7 @@ export function LearnClient({ slug, lessonId, lessonData }: LearnClientProps) {
                         이전 단계
                     </Button>
                     {activeStep < totalSteps ? (
-                        <Button variant="primary" onClick={nextStep} disabled={activeStep === 5 && !isQuizComplete}>
+                        <Button variant="primary" onClick={nextStep} disabled={activeStep === 5 && !isAllQuizzesComplete}>
                             다음 단계
                         </Button>
                     ) : (

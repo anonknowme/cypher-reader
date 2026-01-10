@@ -8,8 +8,8 @@ import { Card } from '@/components/Card';
 import { Badge } from '@/components/Badge';
 import { TextArea } from '@/components/TextArea';
 import { LessonEditor } from '@/components/LessonEditor';
-import { migrateContentToDb } from '@/actions/admin-actions';
-import { generateLessonContent, saveLessonContent, splitTextToSegments, getLessonSummaries, getLessonContent, LessonData } from '@/actions/lesson-actions';
+import { migrateContentToDb, migrateVocabulary } from '@/actions/admin-actions'; // Removed unused for now
+import { saveLessonContent, getLessonSummaries, getLessonContent, LessonData } from '@/actions/lesson-actions';
 import { getAllCourses, createCourse, addLessonToCourse, updateCourseLesson, CourseData } from '@/actions/course-actions';
 
 export default function AdminPage() {
@@ -48,10 +48,10 @@ export default function AdminPage() {
         setCourses(list);
     };
 
-    const handleCreateCourse = async (title: string, id: string, desc: string) => {
+    const handleCreateCourse = async (title: string, id: string, desc: string, imgUrl: string) => {
         if (!title || !id) return;
         try {
-            const newCourse = { id, title, description: desc, lessons: [] };
+            const newCourse = { id, title, description: desc, img_url: imgUrl, lessons: [] };
             await createCourse(newCourse);
             await loadCourses();
             setMessage({ type: 'success', text: '코스가 생성되었습니다.' });
@@ -82,13 +82,11 @@ export default function AdminPage() {
 
     // Reset Content State when entering editor for NEW content
     const startNewLesson = () => {
-        setSourceText('');
         setSourceJson('');
         setSegments([]);
         setActiveSegmentIndex(null);
         setEditingLessonOldHash(null);
         setStep('input');
-        setInputMode('text');
         setView('lesson-editor');
     };
 
@@ -112,23 +110,8 @@ export default function AdminPage() {
         }
     };
 
-    // Step 1: Split Text
-    const handleSplit = async () => {
-        if (!sourceText.trim()) return;
-        setIsLoading(true);
-        try {
-            const rawSegments = await splitTextToSegments(sourceText);
-            setSegments(rawSegments.map((text, idx) => ({ id: idx, text, status: 'pending' })));
-            setStep('managing');
-        } catch (error) {
-            setMessage({ type: 'error', text: '텍스트 분할에 실패했습니다.' });
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
     // Manual JSON Import
-    const [inputMode, setInputMode] = useState<'text' | 'json'>('text');
+    // const [inputMode, setInputMode] = useState<'text' | 'json'>('text'); // Removed 'text' mode
     const [sourceJson, setSourceJson] = useState('');
 
     const handleJsonImport = () => {
@@ -174,29 +157,11 @@ export default function AdminPage() {
         }
     };
 
-    // Step 2: Generate Draft
-    const handleGenerate = async (index: number) => {
-        if (!selectedCourse) return;
-        setIsLoading(true);
-        setActiveSegmentIndex(index);
-        try {
-            const data = await generateLessonContent(segments[index].text, true, selectedCourse.id);
-            if (data) {
-                const newSegments = [...segments];
-                newSegments[index].data = data;
-                newSegments[index].status = 'draft';
-                setSegments(newSegments);
-            }
-        } catch (error) {
-            setMessage({ type: 'error', text: 'AI 생성 실패.' });
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
     // Step 3: Save & Link (or Update)
     const handleSave = async (data: LessonData) => {
         if (activeSegmentIndex === null || !selectedCourse) return;
+
+        setIsLoading(true); // Block UI interactions
 
         try {
             const result = await saveLessonContent(data, selectedCourse.id);
@@ -245,9 +210,11 @@ export default function AdminPage() {
             }
 
             setMessage({ type: 'success', text: '저장 완료!' });
-        } catch (error) {
+        } catch (error: any) {
             console.error(error);
-            setMessage({ type: 'error', text: '저장 실패.' });
+            setMessage({ type: 'error', text: '저장 실패. ' + error.message });
+        } finally {
+            setIsLoading(false); // Unblock UI
         }
     };
 
@@ -256,6 +223,7 @@ export default function AdminPage() {
         const [newTitle, setNewTitle] = useState('');
         const [newId, setNewId] = useState('');
         const [newDesc, setNewDesc] = useState('');
+        const [newImgUrl, setNewImgUrl] = useState('');
 
         return (
             <div className="grid md:grid-cols-2 gap-8">
@@ -298,6 +266,15 @@ export default function AdminPage() {
                             />
                         </div>
                         <div className="space-y-1">
+                            <label className="text-small font-medium text-foreground-secondary">Thumbnail URL (Optional)</label>
+                            <input
+                                className="w-full bg-background-secondary border border-border-primary rounded-8 px-3 py-2 text-foreground-primary focus:outline-none focus:border-accent-default"
+                                placeholder="https://..."
+                                value={newImgUrl}
+                                onChange={e => setNewImgUrl(e.target.value)}
+                            />
+                        </div>
+                        <div className="space-y-1">
                             <label className="text-small font-medium text-foreground-secondary">Description</label>
                             <TextArea
                                 placeholder="Short description..."
@@ -306,7 +283,7 @@ export default function AdminPage() {
                                 onChange={e => setNewDesc(e.target.value)}
                             />
                         </div>
-                        <Button variant="primary" className="w-full" onClick={() => handleCreateCourse(newTitle, newId, newDesc)}>
+                        <Button variant="primary" className="w-full" onClick={() => handleCreateCourse(newTitle, newId, newDesc, newImgUrl)}>
                             Create Course
                         </Button>
                     </div>
@@ -409,22 +386,9 @@ export default function AdminPage() {
                         </div>
                     </div>
 
-                    {/* Migration Tool (Temporary) */}
-                    <Button
-                        size="small"
-                        variant="secondary"
-                        onClick={async () => {
-                            if (!confirm('Are you sure you want to migrate all JSON data to Supabase?')) return;
-                            const res = await migrateContentToDb();
-                            if (res.success) alert(res.message);
-                            else alert('Migration Failed: ' + res.error);
-                        }}
-                    >
-                        Merge JSON to DB 🚀
-                    </Button>
                 </header>
 
-                <main className="h-[calc(100vh-200px)]">
+                <main className="min-h-[calc(100vh-200px)] pb-20">
                     {message && (
                         <div className={`mb-4 p-4 rounded-8 ${message.type === 'success' ? 'bg-semantic-green/10 text-semantic-green' : 'bg-semantic-red/10 text-semantic-red'}`}>
                             {message.text}
@@ -436,102 +400,73 @@ export default function AdminPage() {
                     {view === 'course-dashboard' && <CourseDashboardView />}
 
                     {view === 'lesson-editor' && (
-                        <div className="grid lg:grid-cols-[1fr,1.5fr] gap-8 h-full">
-                            {/* Left Panel: Unit List (Reused from previous code with minor tweaks) */}
-                            <Card level="1" padding="large" className="bg-background-level1 flex flex-col h-full overflow-hidden">
-                                {step === 'input' ? (
-                                    <div className="flex flex-col h-full space-y-4">
-                                        <div className="flex items-center justify-between mb-2">
-                                            <h2 className="text-title3 font-bold">1. Input Mode</h2>
-                                            <div className="flex bg-background-secondary p-1 rounded-8">
-                                                <button
-                                                    onClick={() => setInputMode('text')}
-                                                    className={`px-3 py-1.5 rounded-6 text-small font-medium transition-all ${inputMode === 'text' ? 'bg-white shadow-sm text-foreground-primary' : 'text-foreground-secondary hover:text-foreground-primary'}`}
-                                                >
-                                                    Raw Text
-                                                </button>
-                                                <button
-                                                    onClick={() => setInputMode('json')}
-                                                    className={`px-3 py-1.5 rounded-6 text-small font-medium transition-all ${inputMode === 'json' ? 'bg-white shadow-sm text-foreground-primary' : 'text-foreground-secondary hover:text-foreground-primary'}`}
-                                                >
-                                                    Paste JSON
-                                                </button>
+                        <div className="grid lg:grid-cols-[1fr,1.5fr] gap-8 items-start">
+                            {/* Left Panel: Unit List - Sticky */}
+                            <div className="sticky top-6 h-[calc(100vh-100px)]">
+                                <Card level="1" padding="large" className="bg-background-level1 flex flex-col h-full overflow-hidden">
+                                    {step === 'input' ? (
+                                        <div className="flex flex-col h-full space-y-4">
+                                            <div className="flex items-center justify-between mb-2">
+                                                <h2 className="text-title3 font-bold">1. Import Content</h2>
+                                                <Badge variant="soft" color="blue">JSON Mode</Badge>
+                                            </div>
+
+                                            <div className="flex-1 flex flex-col gap-2">
+                                                <label className="text-small text-foreground-secondary">
+                                                    Paste the generated JSON array here.
+                                                </label>
+                                                <TextArea
+                                                    placeholder='[ { "original_text": "...", ... } ]'
+                                                    className="flex-1 font-mono text-small leading-relaxed"
+                                                    value={sourceJson}
+                                                    onChange={e => setSourceJson(e.target.value)}
+                                                />
+                                            </div>
+
+                                            <Button
+                                                variant="primary"
+                                                className="w-full"
+                                                disabled={!sourceJson.trim()}
+                                                onClick={handleJsonImport}
+                                            >
+                                                Import JSON
+                                            </Button>
+                                        </div>
+                                    ) : (
+                                        <div className="flex flex-col h-full space-y-4">
+                                            <div className="flex justify-between items-center">
+                                                <h2 className="text-title3 font-bold">Learning Units</h2>
+                                                <Button variant="ghost" size="small" onClick={() => setStep('input')}>New Input</Button>
+                                            </div>
+                                            <div className="flex-1 overflow-y-auto space-y-3 pr-2">
+                                                {segments.map((seg, idx) => (
+                                                    <div
+                                                        key={idx}
+                                                        onClick={() => setActiveSegmentIndex(idx)}
+                                                        className={`
+                                                            p-4 rounded-16 border cursor-pointer transition-all hover:border-accent-default
+                                                            ${activeSegmentIndex === idx ? 'border-accent-default bg-accent-default/5 ring-1 ring-accent-default' : 'border-border-secondary bg-background-secondary'}
+                                                        `}
+                                                    >
+                                                        <div className="flex justify-between items-center mb-2">
+                                                            <Badge color={seg.status === 'saved' ? 'green' : seg.status === 'draft' ? 'blue' : 'gray'} variant="solid">
+                                                                Unit {idx + 1}
+                                                            </Badge>
+                                                            {seg.status === 'saved' && <span className="text-mini text-semantic-green">Saved ✅</span>}
+                                                        </div>
+                                                        <p className="text-small font-serif text-foreground-secondary line-clamp-3">
+                                                            {seg.text}
+                                                        </p>
+                                                    </div>
+                                                ))}
                                             </div>
                                         </div>
+                                    )}
+                                </Card>
+                            </div>
 
-                                        {inputMode === 'text' ? (
-                                            <>
-                                                <TextArea
-                                                    placeholder="Paste a full paragraph here..."
-                                                    className="flex-1 text-large font-serif leading-relaxed"
-                                                    value={sourceText}
-                                                    onChange={(e) => setSourceText(e.target.value)}
-                                                />
-                                                <Button
-                                                    variant="primary"
-                                                    className="w-full"
-                                                    onClick={handleSplit}
-                                                    disabled={isLoading || !sourceText}
-                                                >
-                                                    {isLoading ? 'Analyzing...' : 'Analyze & Split Segments'}
-                                                </Button>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <TextArea
-                                                    placeholder="Paste full LessonData JSON object OR an Array of objects [{}, {}] here..."
-                                                    className="flex-1 font-mono text-small"
-                                                    value={sourceJson}
-                                                    onChange={(e) => setSourceJson(e.target.value)}
-                                                />
-                                                <Button
-                                                    variant="primary"
-                                                    className="w-full"
-                                                    onClick={handleJsonImport}
-                                                    disabled={isLoading || !sourceJson}
-                                                >
-                                                    Parse & Load JSON
-                                                </Button>
-                                            </>
-                                        )}
-                                    </div>
-                                ) : (
-                                    <div className="flex flex-col h-full space-y-4">
-                                        <div className="flex justify-between items-center">
-                                            <h2 className="text-title3 font-bold">Learning Units</h2>
-                                            <Button variant="ghost" size="small" onClick={() => setStep('input')}>New Input</Button>
-                                        </div>
-                                        <div className="flex-1 overflow-y-auto space-y-3 pr-2">
-                                            {segments.map((seg, idx) => (
-                                                <div
-                                                    key={idx}
-                                                    onClick={() => {
-                                                        if (seg.status === 'pending') handleGenerate(idx);
-                                                        else setActiveSegmentIndex(idx);
-                                                    }}
-                                                    className={`
-                                                        p-4 rounded-16 border cursor-pointer transition-all hover:border-accent-default
-                                                        ${activeSegmentIndex === idx ? 'border-accent-default bg-accent-default/5 ring-1 ring-accent-default' : 'border-border-secondary bg-background-secondary'}
-                                                    `}
-                                                >
-                                                    <div className="flex justify-between items-center mb-2">
-                                                        <Badge color={seg.status === 'saved' ? 'green' : seg.status === 'draft' ? 'blue' : 'gray'} variant="solid">
-                                                            Unit {idx + 1}
-                                                        </Badge>
-                                                        {seg.status === 'saved' && <span className="text-mini text-semantic-green">Saved ✅</span>}
-                                                    </div>
-                                                    <p className="text-small font-serif text-foreground-secondary line-clamp-3">
-                                                        {seg.text}
-                                                    </p>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-                            </Card>
-
-                            {/* Right Panel: Editor */}
-                            <div className="h-full overflow-y-auto">
+                            {/* Right Panel: Editor - Fluid */}
+                            <div className="min-h-full">
                                 {step === 'managing' && activeSegmentIndex !== null && segments[activeSegmentIndex].data ? (
                                     <LessonEditor
                                         data={segments[activeSegmentIndex].data!}

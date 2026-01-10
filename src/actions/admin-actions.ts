@@ -65,3 +65,51 @@ export async function migrateContentToDb() {
         return { success: false, error: error.message };
     }
 }
+
+export async function migrateVocabulary() {
+    try {
+        console.log("Starting vocabulary migration...");
+
+        // 1. Fetch all lessons from Supabase directly
+        const { data: lessons, error } = await supabase
+            .from('lessons')
+            .select('id, course_id, content_json');
+
+        if (error || !lessons) {
+            throw new Error("Failed to fetch lessons: " + error?.message);
+        }
+
+        console.log(`Found ${lessons.length} lessons to migrate.`);
+
+        let successCount = 0;
+        let failCount = 0;
+
+        // 2. Iterate and Re-save
+        // This triggers the new saveLessonContent logic which:
+        // - Extracts vocabulary
+        // - Upserts to 'vocabulary' table
+        // - Updates 'lessons' JSON to remove definitions
+        for (const lessonRow of lessons) {
+            const lessonData = lessonRow.content_json as LessonData;
+            const courseId = lessonRow.course_id;
+
+            try {
+                // We must import saveLessonContent dynamically or ensure no circular dep issues?
+                // Importing at top level is fine as they are in same module usually or separate files.
+                // We already imported LessonData, let's assume we can import saveLessonContent from lesson-actions.
+                const { saveLessonContent } = await import('./lesson-actions');
+
+                await saveLessonContent(lessonData, courseId);
+                successCount++;
+            } catch (e) {
+                console.error(`Failed to migrate lesson ${lessonRow.id}:`, e);
+                failCount++;
+            }
+        }
+
+        return { success: true, message: `Vocabulary migration complete. Processed: ${successCount}, Failed: ${failCount}` };
+    } catch (error: any) {
+        console.error("Migration fatal error:", error);
+        return { success: false, error: error.message };
+    }
+}

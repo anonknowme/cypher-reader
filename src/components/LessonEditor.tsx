@@ -34,9 +34,9 @@ export function LessonEditor({ data, onSave, onCancel }: LessonEditorProps) {
     };
 
     return (
-        <Card level="1" padding="large" className="bg-background-level1 h-full flex flex-col overflow-hidden">
-            {/* Header / Tabs */}
-            <div className="flex items-center justify-between mb-6 pb-4 border-b border-border-secondary">
+        <Card level="1" padding="large" className="bg-background-level1 flex flex-col relative h-auto min-h-full">
+            {/* Header / Tabs - Sticky */}
+            <div className="flex items-center justify-between mb-6 pb-4 border-b border-border-secondary sticky top-0 bg-background-level1 z-10 pt-2 -mt-2">
                 <div className="flex gap-2">
                     {['info', 'chunks', 'vocab', 'quiz'].map((tab) => (
                         <button
@@ -57,8 +57,8 @@ export function LessonEditor({ data, onSave, onCancel }: LessonEditorProps) {
                 </div>
             </div>
 
-            {/* Scrollable Content */}
-            <div className="flex-1 overflow-y-auto pr-2 space-y-6">
+            {/* Content - Fluid Height */}
+            <div className="space-y-6">
 
                 {/* 1. Basic Info Tab */}
                 {activeTab === 'info' && (
@@ -152,46 +152,74 @@ export function LessonEditor({ data, onSave, onCancel }: LessonEditorProps) {
                 {activeTab === 'vocab' && (
                     <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
                         {formData.vocabulary.map((vocab, idx) => (
-                            <div key={idx} className="flex gap-4 p-4 bg-background-secondary rounded-16 border border-border-primary items-end">
-                                <div className="flex-1">
-                                    <Input
-                                        label="Word"
-                                        value={vocab.word}
-                                        onChange={(e) => {
-                                            const newVocab = [...formData.vocabulary];
-                                            newVocab[idx].word = e.target.value;
+                            <div key={idx} className="flex flex-col gap-4 p-4 bg-background-secondary rounded-16 border border-border-primary">
+                                <div className="flex gap-4">
+                                    <div className="flex-1">
+                                        <Input
+                                            label="Word (Text)"
+                                            value={vocab.word}
+                                            onChange={(e) => {
+                                                const newVocab = [...formData.vocabulary];
+                                                newVocab[idx].word = e.target.value;
+                                                updateField('vocabulary', newVocab);
+                                            }}
+                                        />
+                                    </div>
+                                    <div className="flex-1">
+                                        <Input
+                                            label="Lemma (Base Form)"
+                                            placeholder={vocab.word.toLowerCase()}
+                                            value={vocab.lemma || ''}
+                                            onChange={(e) => {
+                                                const newVocab = [...formData.vocabulary];
+                                                newVocab[idx].lemma = e.target.value;
+                                                updateField('vocabulary', newVocab);
+                                            }}
+                                            className="font-mono text-accent-default"
+                                        />
+                                    </div>
+                                    <Button
+                                        variant="ghost"
+                                        className="text-semantic-red hover:bg-semantic-red/10 h-10 w-10 p-0 flex items-center justify-center self-end mb-1"
+                                        onClick={() => {
+                                            const newVocab = formData.vocabulary.filter((_, i) => i !== idx);
                                             updateField('vocabulary', newVocab);
                                         }}
-                                    />
+                                    >
+                                        ✕
+                                    </Button>
                                 </div>
-                                <div className="flex-[2]">
+                                <div className="w-full">
+                                    <div className="flex justify-between items-center mb-1">
+                                        <label className="text-small font-bold text-foreground-secondary">
+                                            Definition (Global)
+                                        </label>
+                                        <span className="text-mini text-semantic-orange flex items-center gap-1">
+                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                                                <line x1="12" y1="9" x2="12" y2="13" />
+                                                <line x1="12" y1="17" x2="12.01" y2="17" />
+                                            </svg>
+                                            Editing this updates all lessons
+                                        </span>
+                                    </div>
                                     <Input
-                                        label="Definition"
                                         value={vocab.definition}
                                         onChange={(e) => {
                                             const newVocab = [...formData.vocabulary];
                                             newVocab[idx].definition = e.target.value;
                                             updateField('vocabulary', newVocab);
                                         }}
+                                        className="border-semantic-orange/30 focus:border-semantic-orange"
                                     />
                                 </div>
-                                <Button
-                                    variant="ghost"
-                                    className="text-semantic-red hover:bg-semantic-red/10 h-10 w-10 p-0 flex items-center justify-center"
-                                    onClick={() => {
-                                        const newVocab = formData.vocabulary.filter((_, i) => i !== idx);
-                                        updateField('vocabulary', newVocab);
-                                    }}
-                                >
-                                    ✕
-                                </Button>
                             </div>
                         ))}
                         <Button
                             variant="secondary"
                             className="w-full"
                             onClick={() => {
-                                updateField('vocabulary', [...formData.vocabulary, { word: '', definition: '' }]);
+                                updateField('vocabulary', [...formData.vocabulary, { word: '', lemma: '', definition: '' }]);
                             }}
                         >
                             + Add Vocabulary
@@ -201,42 +229,65 @@ export function LessonEditor({ data, onSave, onCancel }: LessonEditorProps) {
 
                 {/* 4. Quiz Tab */}
                 {activeTab === 'quiz' && (
-                    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
-                        <div className="p-4 bg-background-tertiary/20 rounded-16 border border-border-secondary">
-                            <h4 className="font-bold text-small text-foreground-secondary mb-2">Review Quiz Output</h4>
-                            <p className="font-serif text-large leading-relaxed text-foreground-primary">
-                                {formData.quiz.segments.map((seg, i) => (
-                                    <span key={i} className={seg.type === 'blank' ? 'text-accent-default font-bold underline decoration-dashed' : ''}>
-                                        {seg.type === 'blank' ? `[${seg.content}]` : seg.content}
-                                    </span>
-                                ))}
-                            </p>
-                        </div>
-
-                        <div className="grid md:grid-cols-2 gap-6">
-                            <div className="space-y-3">
-                                <label className="text-small font-bold text-foreground-secondary">Correct Answers</label>
-                                {formData.quiz.correctAnswers.map((ans, idx) => (
-                                    <Input key={idx} value={ans} readOnly className="bg-semantic-green/5 border-semantic-green/30" />
-                                ))}
-                            </div>
-                            <div className="space-y-3">
-                                <label className="text-small font-bold text-foreground-secondary">Distractors (Wrong Options)</label>
-                                {formData.quiz.distractors.map((dis, idx) => (
-                                    <Input
-                                        key={idx}
-                                        value={dis}
-                                        onChange={(e) => {
-                                            const newDistractors = [...formData.quiz.distractors];
-                                            newDistractors[idx] = e.target.value;
-                                            setFormData(prev => ({
-                                                ...prev,
-                                                quiz: { ...prev.quiz, distractors: newDistractors }
-                                            }));
+                    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2">
+                        {/* Normalize quizzes/quiz into a list */}
+                        {(formData.quizzes || (formData.quiz ? [formData.quiz] : [])).map((quizItem, qIdx) => (
+                            <div key={qIdx} className="p-4 bg-background-secondary rounded-16 border border-border-primary space-y-4">
+                                <div className="flex justify-between items-center">
+                                    <h4 className="font-bold text-foreground-primary">Quiz #{qIdx + 1}</h4>
+                                    <Button
+                                        variant="ghost"
+                                        size="small"
+                                        className="text-semantic-red hover:bg-semantic-red/10"
+                                        onClick={() => {
+                                            const currentList = formData.quizzes || (formData.quiz ? [formData.quiz] : []);
+                                            const newList = currentList.filter((_, i) => i !== qIdx);
+                                            updateField('quizzes', newList);
                                         }}
-                                    />
-                                ))}
+                                    >
+                                        Remove
+                                    </Button>
+                                </div>
+
+                                <div className="p-4 bg-background-tertiary/20 rounded-8 border border-border-secondary">
+                                    <p className="font-serif text-large leading-relaxed text-foreground-primary">
+                                        {quizItem.segments.map((seg, i) => (
+                                            <span key={i} className={seg.type === 'blank' ? 'text-accent-default font-bold underline decoration-dashed' : ''}>
+                                                {seg.type === 'blank' ? `[${seg.content}]` : seg.content}
+                                            </span>
+                                        ))}
+                                    </p>
+                                </div>
+
+                                <div className="grid md:grid-cols-2 gap-6">
+                                    <div className="space-y-3">
+                                        <label className="text-small font-bold text-foreground-secondary">Correct Answers</label>
+                                        {quizItem.correctAnswers.map((ans, idx) => (
+                                            <Input key={idx} value={ans} readOnly className="bg-semantic-green/5 border-semantic-green/30" />
+                                        ))}
+                                    </div>
+                                    <div className="space-y-3">
+                                        <label className="text-small font-bold text-foreground-secondary">Distractors</label>
+                                        {quizItem.distractors.map((dis, idx) => (
+                                            <Input
+                                                key={idx}
+                                                value={dis}
+                                                onChange={(e) => {
+                                                    const currentList = [...(formData.quizzes || (formData.quiz ? [formData.quiz] : []))];
+                                                    const newDistractors = [...currentList[qIdx].distractors];
+                                                    newDistractors[idx] = e.target.value;
+                                                    currentList[qIdx] = { ...currentList[qIdx], distractors: newDistractors };
+                                                    updateField('quizzes', currentList);
+                                                }}
+                                            />
+                                        ))}
+                                    </div>
+                                </div>
                             </div>
+                        ))}
+
+                        <div className="flex justify-center p-8 border-2 border-dashed border-border-secondary rounded-16 text-foreground-tertiary">
+                            To add a new quiz, please use the AI generation again or implement manual quiz creation (Coming Soon).
                         </div>
                     </div>
                 )}
