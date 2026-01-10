@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next"
 import "./globals.css";
+
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -42,6 +44,7 @@ export default function RootLayout({
         <div className="fixed bottom-6 right-6 z-50">
           <LightningDonateButton variant="icon" />
         </div>
+        <Analytics />
       </body>
     </html>
   );
