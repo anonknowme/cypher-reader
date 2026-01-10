@@ -3,7 +3,7 @@
 import crypto from 'crypto';
 
 import { supabase } from '@/lib/supabase';
-import { supabaseAdmin } from '@/lib/supabase-admin';
+import { getSupabaseAdmin } from '@/lib/supabase-admin';
 
 export interface LessonData {
   original_text: string;
@@ -27,9 +27,7 @@ export interface LessonData {
 // For now, we assume courseId is valid.
 
 export async function saveLessonContent(data: LessonData, courseId: string = 'playground') {
-  if (!process.env.GEMINI_API_KEY) {
-    throw new Error('GEMINI_API_KEY is not configured');
-  }
+  const supabaseAdmin = getSupabaseAdmin();
 
   const hash = crypto.createHash('sha256').update(data.original_text).digest('hex');
 

@@ -1,7 +1,7 @@
 'use server';
 
 import { supabase } from '@/lib/supabase';
-import { supabaseAdmin } from '@/lib/supabase-admin';
+import { getSupabaseAdmin } from '@/lib/supabase-admin';
 
 export interface CourseData {
     id: string; // This is the slug (filename)
@@ -41,7 +41,7 @@ export async function getAllCourses(): Promise<CourseData[]> {
 export async function createCourse(data: CourseData) {
     if (!data.id || !data.title) throw new Error("Invalid course data");
 
-    const { error } = await supabaseAdmin
+    const { error } = await getSupabaseAdmin()
         .from('courses')
         .insert({
             id: data.id,
@@ -80,7 +80,7 @@ export async function addLessonToCourse(courseId: string, lessonHash: string) {
     if (!currentLessons.includes(lessonHash)) {
         const updatedLessons = [...currentLessons, lessonHash];
 
-        const { error: updateError } = await supabaseAdmin
+        const { error: updateError } = await getSupabaseAdmin()
             .from('courses')
             .update({ lesson_order: updatedLessons })
             .eq('id', courseId);
@@ -129,7 +129,7 @@ export async function updateCourseLesson(courseId: string, oldHash: string, newH
         const updatedLessons = [...currentLessons];
         updatedLessons[index] = newHash;
 
-        const { error: updateError } = await supabaseAdmin
+        const { error: updateError } = await getSupabaseAdmin()
             .from('courses')
             .update({ lesson_order: updatedLessons })
             .eq('id', courseId);
