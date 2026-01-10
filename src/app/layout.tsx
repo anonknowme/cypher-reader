@@ -24,6 +24,10 @@ export const viewport: Viewport = {
   interactiveWidget: "resizes-content",
 };
 
+import { LightningDonateButton } from "@/components/LightningDonateButton";
+
+
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -35,6 +39,9 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         {children}
+        <div className="fixed bottom-6 right-6 z-50">
+          <LightningDonateButton variant="icon" />
+        </div>
       </body>
     </html>
   );
