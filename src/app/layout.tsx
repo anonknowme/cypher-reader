@@ -27,8 +27,9 @@ export const viewport: Viewport = {
 };
 
 import { LightningDonateButton } from "@/components/LightningDonateButton";
+import { DonationPromptProvider } from "@/contexts/DonationPromptContext";
 
-
+// ...
 
 export default function RootLayout({
   children,
@@ -40,10 +41,12 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {children}
-        <div className="fixed bottom-6 right-6 z-50">
-          <LightningDonateButton variant="icon" />
-        </div>
+        <DonationPromptProvider>
+          {children}
+          <div className="fixed bottom-6 right-6 z-50">
+            <LightningDonateButton variant="icon" />
+          </div>
+        </DonationPromptProvider>
         <Analytics />
       </body>
     </html>

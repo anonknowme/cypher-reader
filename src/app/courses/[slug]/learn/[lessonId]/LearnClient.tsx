@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useDonationPrompt } from '@/contexts/DonationPromptContext';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { Badge } from '@/components/Badge';
@@ -13,7 +14,7 @@ import { VoiceRecorder } from '@/components/VoiceRecorder';
 import { TypingFeedback } from '@/components/TypingFeedback';
 import { LessonData } from '@/actions/lesson-actions';
 import { WordWithDefinition } from '@/components/WordWithDefinition';
-import { saveLessonProgress } from '@/lib/progress';
+import { saveLessonProgress, getLessonProgress } from '@/lib/progress';
 
 interface LearnClientProps {
     slug: string;
@@ -56,6 +57,25 @@ export function LearnClient({ slug, lessonId, lessonData }: LearnClientProps) {
         }
     }, [data]); // Re-run if data changes
 
+    // Hydrate chunk inputs from saved progress
+    useEffect(() => {
+        const saved = getLessonProgress(slug, lessonId);
+        if (saved?.data?.chunkInputs) {
+            setChunkInputs(saved.data.chunkInputs);
+        }
+    }, [slug, lessonId]);
+
+    // Save chunk inputs when they change (debounced)
+    useEffect(() => {
+        if (activeStep !== 6) return; // Only save in relevant step
+
+        const timer = setTimeout(() => {
+            saveLessonProgress(slug, lessonId, activeStep, totalSteps, { chunkInputs });
+        }, 1000); // 1s debounce
+
+        return () => clearTimeout(timer);
+    }, [chunkInputs, activeStep, slug, lessonId, totalSteps]);
+
     // Get current active quiz state
     const currentQuiz = quizzes[activeQuizIndex];
     const currentQuizState = quizStates[activeQuizIndex];
@@ -92,6 +112,7 @@ export function LearnClient({ slug, lessonId, lessonData }: LearnClientProps) {
     };
 
     const router = useRouter();
+    const { triggerPrompt } = useDonationPrompt();
 
     const nextStep = () => {
         setHighlightIndex(-1);
@@ -99,14 +120,10 @@ export function LearnClient({ slug, lessonId, lessonData }: LearnClientProps) {
         setActiveStep(next);
 
         // Save progress ONLY when moving to next step
-        saveLessonProgress(slug, lessonId, activeStep, totalSteps);
+        saveLessonProgress(slug, lessonId, next, totalSteps);
     };
 
-    const handleFinish = () => {
-        // Mark as completed
-        saveLessonProgress(slug, lessonId, totalSteps, totalSteps);
-        router.push(`/courses/${slug}`);
-    };
+
 
     const prevStep = () => {
         setHighlightIndex(-1);
@@ -176,6 +193,41 @@ export function LearnClient({ slug, lessonId, lessonData }: LearnClientProps) {
         }
 
         return parts.length > 0 ? parts : [text];
+    };
+
+    // Refs for auto-scroll
+    const chunkRefs = React.useRef<(HTMLDivElement | null)[]>([]);
+
+    useEffect(() => {
+        chunkRefs.current = chunkRefs.current.slice(0, data.chunks.length);
+    }, [data.chunks]);
+
+    const handleChunkFocus = (index: number) => {
+        const element = chunkRefs.current[index];
+        if (element) {
+            setTimeout(() => {
+                element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 300); // Delay to allow keyboard to appear on mobile
+        }
+    };
+
+    // Check if all chunks match
+    const isStep6Complete = data.chunks.every((chunk, idx) => {
+        const userValue = chunkInputs[idx] || '';
+        return userValue.trim() === chunk.en.trim();
+    });
+
+    const handleFinish = () => {
+        // Mark as completed ONLY if valid
+        if (!isStep6Complete) {
+            alert("모든 문장을 올바르게 따라 써주세요.");
+            return;
+        }
+
+        // Save with step > totalSteps to trigger 'completed' status
+        saveLessonProgress(slug, lessonId, totalSteps + 1, totalSteps, { chunkInputs });
+        triggerPrompt();
+        router.push(`/courses/${slug}`);
     };
 
     return (
@@ -438,39 +490,47 @@ export function LearnClient({ slug, lessonId, lessonData }: LearnClientProps) {
                                     const isStarted = userValue.length > 0;
 
                                     return (
-                                        <Card key={idx} level="1" padding="medium" className={`transition-colors duration-300 ${isMatch ? 'border-accent-default bg-accent-default/5' : 'bg-background-secondary/30'}`}>
-                                            <div className="space-y-3">
-                                                <TypingFeedback
-                                                    original={chunk.en}
-                                                    input={userValue}
-                                                />
-                                                <TextArea
-                                                    placeholder="위 문장을 따라 적으세요..."
-                                                    className={`
-                                                        font-serif text-large min-h-[60px] resize-none transition-all
-                                                        ${isMatch ? 'border-accent-default ring-1 ring-accent-default/50' : ''}
-                                                    `}
-                                                    value={userValue}
-                                                    onChange={(e) => {
-                                                        const newInputs = [...chunkInputs];
-                                                        newInputs[idx] = e.target.value;
-                                                        setChunkInputs(newInputs);
-                                                    }}
-                                                />
-                                            </div>
-                                        </Card>
+                                        <div
+                                            key={idx}
+                                            ref={el => { chunkRefs.current[idx] = el }}
+                                            className="scroll-mt-24"
+                                        >
+                                            <Card level="1" padding="medium" className={`transition-colors duration-300 ${isMatch ? 'border-semantic-green bg-semantic-green/5' : 'bg-background-secondary/30'}`}>
+                                                <div className="space-y-3">
+                                                    <TypingFeedback
+                                                        original={chunk.en}
+                                                        input={userValue}
+                                                    />
+                                                    <TextArea
+                                                        placeholder="위 문장을 따라 적으세요..."
+                                                        className={`
+                                                            font-serif text-large min-h-[60px] resize-none transition-all
+                                                            ${isMatch ? 'border-semantic-green ring-1 ring-semantic-green/50' : ''}
+                                                        `}
+                                                        value={userValue}
+                                                        onChange={(e) => {
+                                                            const newInputs = [...chunkInputs];
+                                                            newInputs[idx] = e.target.value;
+                                                            setChunkInputs(newInputs);
+                                                        }}
+                                                        onFocus={() => handleChunkFocus(idx)}
+                                                    />
+                                                </div>
+                                            </Card>
+                                        </div>
                                     );
                                 })}
                             </div>
 
-                            <div className="flex justify-center pt-4">
-                                <Button
-                                    variant="secondary"
-                                    onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-                                >
-                                    맨 위로 이동 ⬆
-                                </Button>
-                            </div>
+                            {/* Congratulatory Message */}
+                            {isStep6Complete && (
+                                <div className="mt-8 p-6 bg-semantic-green/10 border border-semantic-green/30 rounded-16 animate-in zoom-in-95 duration-300 text-center">
+                                    <div className="text-4xl mb-2">🎉</div>
+                                    <h3 className="text-title3 font-bold text-semantic-green mb-2">Wonderful!</h3>
+                                    <p className="text-foreground-secondary">모든 문장을 완벽하게 따라 썼습니다.<br />이제 다음 레슨으로 넘어갈 수 있습니다.</p>
+                                </div>
+                            )}
+
                         </section>
                     )}
 
@@ -490,8 +550,13 @@ export function LearnClient({ slug, lessonId, lessonData }: LearnClientProps) {
                             다음 단계
                         </Button>
                     ) : (
-                        <Button variant="primary" onClick={handleFinish}>
-                            다음 문장으로 넘어가기
+                        <Button
+                            variant="primary"
+                            onClick={handleFinish}
+                            disabled={!isStep6Complete}
+                            className={!isStep6Complete ? 'opacity-50 cursor-not-allowed' : ''}
+                        >
+                            다음 레슨으로 넘어가기
                         </Button>
                     )}
                 </footer>

@@ -5,6 +5,7 @@ export interface LessonProgress {
     lastStep: number;
     totalSteps: number;
     updatedAt: number;
+    data?: any; // For storing step-specific data (e.g. inputs)
 }
 
 export interface CourseProgress {
@@ -48,7 +49,8 @@ export function saveLessonProgress(
     courseId: string,
     lessonId: string,
     step: number,
-    totalSteps: number
+    totalSteps: number,
+    data?: any
 ) {
     const current = getProgress();
 
@@ -60,23 +62,12 @@ export function saveLessonProgress(
     const now = Date.now();
 
     // Calculate status
+    // Calculate status
     let status: LessonStatus = 'in-progress';
-    if (step >= totalSteps) { // Assuming step 6/6 is strictly completion, or maybe completion happens AFTER step 6?
-        // Let's assume step 6 is the last step. completing it (or being on it?)
-        // Usually "completed" means finished. Let's rely on caller to say "completed"?
-        // For now, if step === totalSteps, we consider it 'completed' or at least 'in-progress' (last step).
-        // Let's explicitly check if it was ALREADY completed.
-    }
 
-    // Logic: 
-    // If we are at step >= totalSteps, we might mark as completed? 
-    // Actually, 'completed' is best set explicitly when the user finishes the last step.
-    // But for simple tracking, if step === totalSteps, let's treat it as 'completed' for now OR just 'in-progress' (6/6).
-    // Let's stick to: 'completed' if step === totalSteps AND the user has finished interaction?
-    // Simpler: If step === totalSteps, it's 'completed'.
-    if (step >= totalSteps) status = 'completed';
+    // Only mark as completed if step > totalSteps
+    if (step > totalSteps) status = 'completed';
 
-    // Merge
     const existing = course.lessons[lessonId];
 
     // Don't downgrade status (e.g. from completed back to in-progress if they revisit)
@@ -88,7 +79,8 @@ export function saveLessonProgress(
         status,
         lastStep: step,
         totalSteps,
-        updatedAt: now
+        updatedAt: now,
+        data: data || existing?.data // Merge new data or keep existing
     };
 
     course.lastAccessedLessonId = lessonId;

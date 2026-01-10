@@ -12,23 +12,29 @@ interface LightningDonateButtonProps {
     message?: string;
 }
 
+import { useDonationPrompt } from '@/contexts/DonationPromptContext';
+
+// ...
+
 export const LightningDonateButton = ({
     variant = 'button',
     message = DONATION_MESSAGE
 }: LightningDonateButtonProps) => {
     const [showModal, setShowModal] = useState(false);
+    const { isPromptVisible, dismissPrompt } = useDonationPrompt();
 
     // Prevent body scroll when modal is open
     useEffect(() => {
         if (showModal) {
             document.body.style.overflow = 'hidden';
+            dismissPrompt(); // Dismiss prompt if user opens modal
         } else {
             document.body.style.overflow = 'auto';
         }
         return () => {
             document.body.style.overflow = 'auto';
         };
-    }, [showModal]);
+    }, [showModal, dismissPrompt]);
 
     const openWallet = (scheme: string) => {
         const lightningUrl = `${scheme}lightning:${LIGHTNING_ADDRESS}`;
@@ -36,11 +42,26 @@ export const LightningDonateButton = ({
     };
 
     return (
-        <>
+        <div className="relative">
+            {/* Speech Bubble Prompt */}
+            {isPromptVisible && !showModal && (
+                <div
+                    className="absolute bottom-full right-0 mb-4 w-48 animate-in slide-in-from-bottom-2 duration-300"
+                    onClick={dismissPrompt}
+                >
+                    <div className="bg-black/80 backdrop-blur-md text-white p-3 rounded-xl shadow-xl border border-white/10 relative cursor-pointer hover:bg-black/90 transition-colors">
+                        <p className="text-small font-bold text-center whitespace-nowrap">
+                            앱이 마음에 드시다면?↘️
+                        </p>
+                        {/* Simple fade arrow implementation or remove triangle for cleaner glass look */}
+                    </div>
+                </div>
+            )}
+
             {variant === 'icon' ? (
                 <button
                     onClick={() => setShowModal(true)}
-                    className="w-12 h-12 rounded-full flex items-center justify-center text-xl bg-gradient-to-br from-orange-400 to-orange-600 text-white shadow-lg hover:scale-110 active:scale-95 transition-all duration-300"
+                    className="w-12 h-12 rounded-full flex items-center justify-center text-xl bg-gradient-to-br from-orange-400 to-orange-600 text-white shadow-lg hover:scale-110 active:scale-95 transition-all duration-300 relative z-10"
                     title="비트코인 후원하기"
                 >
                     ⚡
@@ -126,6 +147,6 @@ export const LightningDonateButton = ({
                     </div>
                 </div>
             )}
-        </>
+        </div>
     );
 };
