@@ -216,7 +216,7 @@ export function LearnClient({ slug, lessonId, lessonData }: LearnClientProps) {
     // Check if all chunks match (Cleaned & Case-Insensitive)
     const isStep6Complete = data.chunks.every((chunk, idx) => {
         const userValue = chunkInputs[idx] || '';
-        const cleanText = (str: string) => str.replace(/[^a-zA-Z0-9\s-]/g, "");
+        const cleanText = (str: string) => str.replace(/[^a-zA-Z0-9\s-]/g, "").replace(/\s+/g, " ");
         const targetText = cleanText(chunk.en);
         return userValue.toLowerCase().trim() === targetText.toLowerCase().trim();
     });
@@ -489,8 +489,8 @@ export function LearnClient({ slug, lessonId, lessonData }: LearnClientProps) {
 
                             <div className="space-y-4">
                                 {data.chunks.map((chunk, idx) => {
-                                    // Clean text: remove all non-alphanumeric characters (keep spaces and hyphens)
-                                    const cleanText = (str: string) => str.replace(/[^a-zA-Z0-9\s-]/g, "");
+                                    // Clean text: remove all non-alphanumeric characters (keep spaces and hyphens) AND collapse whitespace (handles newlines)
+                                    const cleanText = (str: string) => str.replace(/[^a-zA-Z0-9\s-]/g, "").replace(/\s+/g, " ");
 
                                     const targetText = cleanText(chunk.en);
                                     const userValue = chunkInputs[idx] || '';
