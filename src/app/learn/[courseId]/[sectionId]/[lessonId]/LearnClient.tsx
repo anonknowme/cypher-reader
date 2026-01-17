@@ -231,7 +231,7 @@ export function LearnClient({ slug, lessonId, lessonData }: LearnClientProps) {
         // Save with step > totalSteps to trigger 'completed' status
         saveLessonProgress(slug, lessonId, totalSteps + 1, totalSteps, { chunkInputs });
         triggerPrompt();
-        router.push(`/courses/${slug}`);
+        router.push(`/learn/${slug}`);
     };
 
     return (
@@ -242,7 +242,7 @@ export function LearnClient({ slug, lessonId, lessonData }: LearnClientProps) {
                 <header className="space-y-4">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                            <Link href={`/courses/${slug}`} className="p-2 -ml-2 text-foreground-tertiary hover:text-foreground-primary transition-colors">
+                            <Link href={`/learn/${slug}`} className="p-2 -ml-2 text-foreground-tertiary hover:text-foreground-primary transition-colors">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                     <path d="M19 12H5M12 19l-7-7 7-7" />
                                 </svg>

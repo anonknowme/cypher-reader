@@ -37,26 +37,37 @@ export type LessonDataV3 = {
     translation_kr: string
     context_desc: string
     audio_url?: string
+    chunks: ChunkDataV3[]  // JSONB array
 
     created_at: string
     updated_at: string
 }
 
 export type ChunkDataV3 = {
-    id: string
-    lesson_id: string // Linked directly to Lesson
     order: number
     en: string
     kr: string
-    lemma?: string
+}
+
+export type VocabularyMasterV3 = {
+    lemma: string
+    definition: string
+    part_of_speech: string | null
+}
+
+export type LessonVocabularyV3 = {
+    lesson_id: string
+    lemma: string
+    word: string
+    context_match: boolean
 }
 
 export type VocabularyDataV3 = {
-    id: string
-    lesson_id: string // Linked directly to Lesson
+    id?: string
     word: string
-    lemma?: string
+    lemma: string
     definition: string
+    part_of_speech?: string | null
     context_match?: boolean
 }
 
@@ -83,8 +94,8 @@ type DBV3 = {
     courses: CourseDataV3[]
     sections: SectionDataV3[]
     lessons: LessonDataV3[]
-    chunks: ChunkDataV3[]
-    vocabulary: VocabularyDataV3[]
+    vocabulary_master: VocabularyMasterV3[]
+    lesson_vocabulary: LessonVocabularyV3[]
     quizzes: QuizDataV3[]
 }
 
@@ -99,8 +110,8 @@ async function getDBV3(): Promise<DBV3> {
             courses: [],
             sections: [],
             lessons: [],
-            chunks: [],
-            vocabulary: [],
+            vocabulary_master: [],
+            lesson_vocabulary: [],
             quizzes: []
         };
     }
@@ -108,6 +119,47 @@ async function getDBV3(): Promise<DBV3> {
 
 async function saveDBV3(db: DBV3) {
     await fs.writeFile(DB_PATH_V3, JSON.stringify(db, null, 2), 'utf-8');
+}
+
+// --- Helper: Reconstruct Vocabulary from Master ---
+function getVocabularyForLesson(db: DBV3, lessonId: string): VocabularyDataV3[] {
+    const lessonVocab = db.lesson_vocabulary.filter(lv => lv.lesson_id === lessonId);
+
+    return lessonVocab.map(lv => {
+        const master = db.vocabulary_master.find(vm => vm.lemma === lv.lemma);
+        return {
+            id: `vocab-${lessonId}-${lv.word}-${lv.lemma}`,
+            word: lv.word,
+            lemma: lv.lemma,
+            definition: master?.definition || '',
+            part_of_speech: master?.part_of_speech
+        };
+    });
+}
+
+// --- Helper: Save Vocabulary to Master ---
+function saveVocabularyToMaster(db: DBV3, lessonId: string, vocabulary: any[]) {
+    // Remove old mappings
+    db.lesson_vocabulary = db.lesson_vocabulary.filter(lv => lv.lesson_id !== lessonId);
+
+    vocabulary.forEach(vocab => {
+        // Add to master if not exists
+        if (!db.vocabulary_master.find(vm => vm.lemma === vocab.lemma)) {
+            db.vocabulary_master.push({
+                lemma: vocab.lemma,
+                definition: vocab.definition,
+                part_of_speech: vocab.part_of_speech || null
+            });
+        }
+
+        // Add mapping
+        db.lesson_vocabulary.push({
+            lesson_id: lessonId,
+            lemma: vocab.lemma,
+            word: vocab.word,
+            context_match: vocab.context_match !== false
+        });
+    });
 }
 
 // --- Migration Stub ---
@@ -171,9 +223,8 @@ export async function deleteSectionV3(sectionId: string) {
     // Cascade delete lessons
     const lessons = db.lessons.filter(l => l.section_id === sectionId);
     for (const lesson of lessons) {
-        // Delete items linked to lesson
-        db.chunks = db.chunks.filter(c => c.lesson_id !== lesson.id);
-        db.vocabulary = db.vocabulary.filter(v => v.lesson_id !== lesson.id);
+        // Delete vocabulary mappings and quizzes (chunks are in lesson)
+        db.lesson_vocabulary = db.lesson_vocabulary.filter(lv => lv.lesson_id !== lesson.id);
         db.quizzes = db.quizzes.filter(q => q.lesson_id !== lesson.id);
     }
     db.lessons = db.lessons.filter(l => l.section_id !== sectionId);
@@ -189,9 +240,8 @@ export async function getLessonV3(lessonId: string): Promise<LessonWithChildren 
     const lesson = db.lessons.find(l => l.id === lessonId);
     if (!lesson) return undefined;
 
-    // Join Children
-    const chunks = db.chunks.filter(c => c.lesson_id === lessonId).sort((a, b) => a.order - b.order);
-    const vocabulary = db.vocabulary.filter(v => v.lesson_id === lessonId);
+    // Chunks are already in lesson, vocabulary needs reconstruction
+    const vocabulary = getVocabularyForLesson(db, lessonId);
     const quizzes = db.quizzes.filter(q => q.lesson_id === lessonId).map(q => ({
         ...q,
         // Compatibility Map
@@ -202,10 +252,10 @@ export async function getLessonV3(lessonId: string): Promise<LessonWithChildren 
 
     return {
         ...lesson,
-        chunks,
+        chunks: lesson.chunks || [],
         vocabulary,
         quizzes
-    };
+    } as LessonWithChildren;
 }
 
 // Get Lesson Summaries (Lightweight)
@@ -222,7 +272,7 @@ export async function getLessonSummariesV3(sectionId: string) {
             order: l.order || 0,
             title: l.title || (l.original_text ? (l.original_text.substring(0, 50) + '...') : 'No content'),
             preview: l.original_text ? (l.original_text.substring(0, 100) + '...') : 'No content',
-            chunkCount: db.chunks.filter(c => c.lesson_id === l.id).length,
+            chunkCount: l.chunks?.length || 0,
             subLessonCount: 1
         };
     });
@@ -249,6 +299,7 @@ export async function createLessonV3(courseId: string, sectionId: string, id: st
         original_text: '',
         translation_kr: '',
         context_desc: '',
+        chunks: [],  // Initialize empty chunks
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
     };
@@ -281,49 +332,26 @@ export async function updateLessonV3(lessonId: string, contentJson: any[], metad
     lesson.updated_at = new Date().toISOString();
 
     // RE-CREATE CHILDREN
-    db.chunks = db.chunks.filter(c => c.lesson_id !== lessonId);
-    db.vocabulary = db.vocabulary.filter(v => v.lesson_id !== lessonId);
-    db.quizzes = db.quizzes.filter(q => q.lesson_id !== lessonId);
-
+    // Chunks: Save directly to lesson (JSONB)
     if (Array.isArray(content.chunks)) {
-        const seenIds = new Set<string>();
-        content.chunks.forEach((chunk: any, idx: number) => {
-            let chunkId = chunk.id;
-            if (!chunkId || seenIds.has(chunkId)) {
-                chunkId = `chunk-${lessonId}-${Date.now()}-${idx}-${Math.random().toString(36).substr(2, 5)}`;
-            }
-            seenIds.add(chunkId);
-
-            db.chunks.push({
-                id: chunkId,
-                lesson_id: lessonId,
-                order: idx + 1,
-                en: chunk.en,
-                kr: chunk.kr,
-                lemma: chunk.lemma
-            });
-        });
+        lesson.chunks = content.chunks.map((chunk: any, idx: number) => ({
+            order: idx + 1,
+            en: chunk.en,
+            kr: chunk.kr
+        }));
+    } else {
+        lesson.chunks = [];
     }
 
+    // Vocabulary: Save to master dictionary + mappings
+    // Remove old mappings first (already handled in saveVocabularyToMaster)
+    // but we need to call it if content.vocabulary exists
     if (Array.isArray(content.vocabulary)) {
-        const seenIds = new Set<string>();
-        content.vocabulary.forEach((vocab: any, idx: number) => {
-            let vocabId = vocab.id;
-            if (!vocabId || seenIds.has(vocabId)) {
-                vocabId = `vocab-${lessonId}-${Date.now()}-${idx}-${Math.random().toString(36).substr(2, 5)}`;
-            }
-            seenIds.add(vocabId);
-
-            db.vocabulary.push({
-                id: vocabId,
-                lesson_id: lessonId,
-                word: vocab.word,
-                lemma: vocab.lemma,
-                definition: vocab.definition,
-                context_match: vocab.context_match
-            });
-        });
+        saveVocabularyToMaster(db, lessonId, content.vocabulary);
     }
+
+    // Quizzes: Separate table (unchanged, just recreate)
+    db.quizzes = db.quizzes.filter(q => q.lesson_id !== lessonId);
 
     if (Array.isArray(content.quizzes)) {
         const seenIds = new Set<string>();
@@ -354,11 +382,24 @@ export async function deleteLessonV2(lessonId: string) { return deleteLessonV3(l
 export async function deleteLessonV3(lessonId: string) {
     const db = await getDBV3();
 
-    db.chunks = db.chunks.filter(c => c.lesson_id !== lessonId);
-    db.vocabulary = db.vocabulary.filter(v => v.lesson_id !== lessonId);
+    // Delete vocabulary mappings and quizzes (chunks are in lesson)
+    db.lesson_vocabulary = db.lesson_vocabulary.filter(lv => lv.lesson_id !== lessonId);
     db.quizzes = db.quizzes.filter(q => q.lesson_id !== lessonId);
 
-    db.lessons = db.lessons.filter(l => l.id !== lessonId);
+    const lessonToDelete = db.lessons.find(l => l.id === lessonId);
+    if (lessonToDelete) {
+        const sectionId = lessonToDelete.section_id;
+        const deleteOrder = lessonToDelete.order;
+
+        db.lessons = db.lessons.filter(l => l.id !== lessonId);
+
+        // Reorder subsequent lessons
+        db.lessons.forEach(l => {
+            if (l.section_id === sectionId && l.order > deleteOrder) {
+                l.order -= 1;
+            }
+        });
+    }
 
     await saveDBV3(db);
     revalidatePath('/admin2');
@@ -370,8 +411,8 @@ export async function deleteAllLessonsInSectionV3(sectionId: string) {
     const lessons = db.lessons.filter(l => l.section_id === sectionId);
 
     for (const lesson of lessons) {
-        db.chunks = db.chunks.filter(c => c.lesson_id !== lesson.id);
-        db.vocabulary = db.vocabulary.filter(v => v.lesson_id !== lesson.id);
+        // Delete vocabulary mappings and quizzes (chunks are in lesson)
+        db.lesson_vocabulary = db.lesson_vocabulary.filter(lv => lv.lesson_id !== lesson.id);
         db.quizzes = db.quizzes.filter(q => q.lesson_id !== lesson.id);
     }
 
@@ -395,22 +436,35 @@ export async function mergeLessonsV3(targetLessonId: string, sourceLessonId: str
     target.context_desc += " | " + source.context_desc;
 
     // Re-parent Children
-    const targetChunkCount = db.chunks.filter(c => c.lesson_id === targetLessonId).length;
+    // Chunks: Append to target chunks (JSONB)
+    const targetChunks = target.chunks || [];
+    const sourceChunks = source.chunks || [];
 
-    const sourceChunks = db.chunks.filter(c => c.lesson_id === sourceLessonId);
-    sourceChunks.forEach((c, idx) => {
-        c.lesson_id = targetLessonId;
-        c.order = targetChunkCount + idx + 1;
-    });
+    // Update order for source chunks
+    const updatedSourceChunks = sourceChunks.map((chunk, idx) => ({
+        ...chunk,
+        order: targetChunks.length + idx + 1
+    }));
 
-    const sourceVocab = db.vocabulary.filter(v => v.lesson_id === sourceLessonId);
+    target.chunks = [...targetChunks, ...updatedSourceChunks];
+
+    // Vocabulary: Update lesson_id in mappings
+    const sourceVocab = db.lesson_vocabulary.filter(v => v.lesson_id === sourceLessonId);
     sourceVocab.forEach(v => v.lesson_id = targetLessonId);
 
+    // Quizzes: Update lesson_id
     const sourceQuizzes = db.quizzes.filter(q => q.lesson_id === sourceLessonId);
     sourceQuizzes.forEach(q => q.lesson_id = targetLessonId);
 
     // Delete Source Lesson
     db.lessons = db.lessons.filter(l => l.id !== sourceLessonId);
+
+    // Reorder subsequent lessons in the source section
+    db.lessons.forEach(l => {
+        if (l.section_id === source.section_id && l.order > source.order) {
+            l.order -= 1;
+        }
+    });
 
     await saveDBV3(db);
     revalidatePath('/admin2');

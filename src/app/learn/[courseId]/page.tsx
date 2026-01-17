@@ -1,13 +1,12 @@
 import Link from 'next/link';
 import { Badge } from '@/components/Badge';
 import { Button } from '@/components/Button';
-import { getCourse } from '@/actions/course-actions';
-import { getLessonSummaries } from '@/actions/lesson-actions';
-import { CourseLessonList } from './CourseLessonList';
+import { getCourseV3Mock, getSectionsV3Mock, getLessonCountV3Mock } from '@/actions/course-actions-v3-mock';
+import { SectionSelectionList } from './SectionSelectionList';
 
-export default async function CourseDetailPage({ params }: { params: Promise<{ slug: string }> }) {
-    const { slug } = await params;
-    const course = await getCourse(slug);
+export default async function LearnCoursePage({ params }: { params: Promise<{ courseId: string }> }) {
+    const { courseId } = await params;
+    const course = await getCourseV3Mock(courseId);
 
     if (!course) {
         return (
@@ -20,8 +19,15 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ s
         );
     }
 
-    // Fetch summaries for all lessons in one go (Server-side)
-    const lessons = await getLessonSummaries(course.lessons, slug);
+    const sections = await getSectionsV3Mock(courseId);
+
+    // Get lesson counts for each section
+    const sectionsWithCounts = await Promise.all(
+        sections.map(async (section) => ({
+            ...section,
+            lessonCount: await getLessonCountV3Mock(section.id)
+        }))
+    );
 
     return (
         <div className="min-h-screen bg-background-level0 py-page-padding-block px-page-padding-inline font-regular text-foreground-primary">
@@ -44,9 +50,12 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ s
                     </div>
                 </header>
 
-                {/* Lesson List (Client Component for Progress Tracking) */}
+                {/* Section List */}
                 <main>
-                    <CourseLessonList courseId={slug} lessons={lessons} />
+                    <SectionSelectionList
+                        courseId={courseId}
+                        sections={sectionsWithCounts}
+                    />
                 </main>
 
             </div>

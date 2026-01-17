@@ -4,36 +4,38 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Card } from '@/components/Card';
 import { Badge } from '@/components/Badge';
-import { Button } from '@/components/Button';
 import { getCourseProgress, clearCourseProgress, LessonProgress } from '@/lib/progress';
+import type { LessonWithChildrenV3Mock } from '@/actions/course-actions-v3-mock';
 
-interface LessonSummary {
-    hash: string;
-    original_text: string;
-    trans_kr: string;
-}
-
-interface CourseLessonListProps {
+interface SectionLessonListProps {
     courseId: string;
-    lessons: LessonSummary[];
+    sectionId: string;
+    lessons: LessonWithChildrenV3Mock[];
 }
 
-export function CourseLessonList({ courseId, lessons }: CourseLessonListProps) {
+export function SectionLessonList({ courseId, sectionId, lessons }: SectionLessonListProps) {
     const [progressMap, setProgressMap] = useState<Record<string, LessonProgress>>({});
     const [isLoaded, setIsLoaded] = useState(false);
+    const [devMode, setDevMode] = useState(false);
+
+    // Use combined key for progress tracking
+    const progressKey = `${courseId}/${sectionId}`;
+
+    // Check if dev mode should be enabled (only in development)
+    const isDevelopment = process.env.NODE_ENV === 'development';
 
     useEffect(() => {
         // Hydrate progress on mount
-        const courseProgress = getCourseProgress(courseId);
+        const courseProgress = getCourseProgress(progressKey);
         if (courseProgress) {
             setProgressMap(courseProgress.lessons);
         }
         setIsLoaded(true);
-    }, [courseId]);
+    }, [progressKey]);
 
     const handleReset = () => {
-        if (confirm('모든 학습 기록을 초기화하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) {
-            clearCourseProgress(courseId);
+        if (confirm('이 섹션의 모든 학습 기록을 초기화하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) {
+            clearCourseProgress(progressKey);
             setProgressMap({});
         }
     };
@@ -45,29 +47,43 @@ export function CourseLessonList({ courseId, lessons }: CourseLessonListProps) {
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
-                <h2 className="text-title3 font-bold">커리큘럼 (총 {lessons.length}강)</h2>
-                {isLoaded && completedCount > 0 && (
-                    <Badge color="accent" variant="soft">진행률 {progressPercent}%</Badge>
-                )}
+                <h2 className="text-title2 font-bold">Lessons</h2>
+                <div className="flex items-center gap-2">
+                    {isDevelopment && (
+                        <button
+                            onClick={() => setDevMode(!devMode)}
+                            className={`text-mini font-medium px-3 py-1.5 rounded-full transition-colors ${devMode
+                                    ? 'bg-semantic-red text-white'
+                                    : 'bg-background-tertiary text-foreground-tertiary hover:bg-background-quaternary'
+                                }`}
+                        >
+                            {devMode ? '🔓 Dev Mode' : '🔒 Lock Mode'}
+                        </button>
+                    )}
+                    {isLoaded && completedCount > 0 && (
+                        <Badge color="accent" variant="soft">진행률 {progressPercent}%</Badge>
+                    )}
+                    <Badge color="gray" variant="soft">{lessons.length} lessons</Badge>
+                </div>
             </div>
 
-            <div className="grid gap-4">
+            <div className="space-y-3">
                 {lessons.map((lesson, idx) => {
-                    const progress = progressMap[lesson.hash];
+                    const progress = progressMap[lesson.id];
                     const isCompleted = progress?.status === 'completed';
                     const isInProgress = progress?.status === 'in-progress';
 
-                    // Lock logic: Unlocked if it's the first lesson OR previous lesson is completed
-                    const prevLessonHash = idx > 0 ? lessons[idx - 1].hash : null;
-                    const prevLessonProgress = prevLessonHash ? progressMap[prevLessonHash] : null;
-                    const isLocked = idx > 0 && prevLessonProgress?.status !== 'completed';
+                    // Lock logic: Unlocked if it's the first lesson OR previous lesson is completed OR dev mode
+                    const prevLesson = idx > 0 ? lessons[idx - 1] : null;
+                    const prevLessonProgress = prevLesson ? progressMap[prevLesson.id] : null;
+                    const isLocked = !devMode && idx > 0 && prevLessonProgress?.status !== 'completed';
 
                     const CardContent = (
                         <Card
                             level="1"
                             padding="medium"
                             className={`
-                                transition-all 
+                                transition-all
                                 ${isLocked
                                     ? 'bg-background-level1 opacity-60 grayscale cursor-not-allowed'
                                     : `hover:shadow-medium group-hover:-translate-y-1 ${isCompleted ? 'border-accent-default/50 bg-accent-default/5' : 'hover:bg-background-secondary hover:border-accent-default'}`
@@ -84,12 +100,12 @@ export function CourseLessonList({ courseId, lessons }: CourseLessonListProps) {
                                             : 'bg-background-tertiary text-foreground-tertiary group-hover:bg-accent-default group-hover:text-white'
                                     }
                                 `}>
-                                    {isCompleted ? '✓' : isLocked ? '🔒' : idx + 1}
+                                    {isCompleted ? '✓' : isLocked ? '🔒' : lesson.order}
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                    <div className="flex items-start justify-between mb-1 gap-2">
-                                        <h3 className="text-large font-bold text-foreground-primary pr-2 leading-tight break-keep line-clamp-2">
-                                            Part {idx + 1}: {lesson.trans_kr || '(제목 없음)'}
+                                    <div className="flex items-start justify-between mb-2 gap-2">
+                                        <h3 className="text-title3 font-bold text-foreground-primary group-hover:text-accent-default transition-colors leading-tight break-keep">
+                                            {lesson.title || `Lesson ${lesson.order}`}
                                         </h3>
                                         <div className="shrink-0">
                                             {isCompleted ? (
@@ -103,8 +119,12 @@ export function CourseLessonList({ courseId, lessons }: CourseLessonListProps) {
                                             )}
                                         </div>
                                     </div>
-                                    <p className="text-small text-foreground-secondary font-serif line-clamp-2">
-                                        {lesson.original_text}
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <Badge color="blue" variant="outline">{lesson.chunks.length} chunks</Badge>
+                                        <Badge color="green" variant="outline">{lesson.vocabulary.length} words</Badge>
+                                    </div>
+                                    <p className="text-small text-foreground-tertiary line-clamp-2">
+                                        {lesson.context_desc || lesson.translation_kr}
                                     </p>
                                 </div>
                             </div>
@@ -113,14 +133,14 @@ export function CourseLessonList({ courseId, lessons }: CourseLessonListProps) {
 
                     if (isLocked) {
                         return (
-                            <div key={lesson.hash} className="block select-none">
+                            <div key={lesson.id} className="block select-none">
                                 {CardContent}
                             </div>
                         );
                     }
 
                     return (
-                        <Link key={lesson.hash} href={`/courses/${courseId}/learn/${lesson.hash}`} className="block group">
+                        <Link key={lesson.id} href={`/learn/${courseId}/${sectionId}/${lesson.id}`} className="block group">
                             {CardContent}
                         </Link>
                     );
