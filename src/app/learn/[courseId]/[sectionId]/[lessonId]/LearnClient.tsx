@@ -301,12 +301,7 @@ export function LearnClient({ slug, lessonId, lessonData }: LearnClientProps) {
                                         "{data.original_text}"
                                     </p>
                                 </div>
-                                {/* Source */}
-                                <div className="flex justify-end pt-2">
-                                    <span className="text-mini text-foreground-tertiary font-mono">
-                                        출처: 비트코인 백서 (Bitcoin Whitepaper)
-                                    </span>
-                                </div>
+
                             </Card>
                         </section>
                     )}

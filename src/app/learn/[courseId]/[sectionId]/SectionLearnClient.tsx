@@ -10,7 +10,7 @@ import { TextArea } from '@/components/TextArea';
 import { VoiceRecorder } from '@/components/VoiceRecorder';
 import { TypingFeedback } from '@/components/TypingFeedback';
 import { WordWithDefinition } from '@/components/WordWithDefinition';
-import type { LessonWithChildrenV3Mock } from '@/actions/course-actions-v3-mock';
+import type { LessonWithChildrenV3Mock } from '@/actions/course-actions';
 
 interface SectionLearnClientProps {
     courseId: string;

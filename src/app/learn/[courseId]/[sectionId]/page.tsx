@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { Badge } from '@/components/Badge';
 import { Button } from '@/components/Button';
-import { getCourseV3Mock, getSectionV3Mock, getLessonsV3Mock } from '@/actions/course-actions-v3-mock';
+import { getCourseV3Mock, getSectionV3Mock, getLessonsV3Mock } from '@/actions/course-actions';
 import { SectionLessonList } from './SectionLessonList';
 
 export default async function LearnSectionPage({

@@ -27,7 +27,7 @@ import {
     SectionDataV3,
     LessonDataV3,
     LessonWithChildren
-} from '@/actions/course-actions-v3';
+} from '@/actions/course-actions';
 
 import { EditorView } from './_components/EditorView';
 import { CourseSelectionView } from './_components/CourseSelectionView';

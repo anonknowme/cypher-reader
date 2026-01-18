@@ -1,7 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/Button';
-import { getLessonsV3Mock } from '@/actions/course-actions-v3-mock';
+import { getLessonsV3Mock } from '@/actions/course-actions';
 import { LearnClient } from './LearnClient';
 
 export default async function LearnLessonPage({

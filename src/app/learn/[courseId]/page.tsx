@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { Badge } from '@/components/Badge';
 import { Button } from '@/components/Button';
-import { getCourseV3Mock, getSectionsV3Mock, getLessonCountV3Mock } from '@/actions/course-actions-v3-mock';
+import { getCourseV3Mock, getSectionsV3Mock, getLessonCountV3Mock } from '@/actions/course-actions';
 import { SectionSelectionList } from './SectionSelectionList';
 
 export default async function LearnCoursePage({ params }: { params: Promise<{ courseId: string }> }) {

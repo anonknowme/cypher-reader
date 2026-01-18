@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { Card } from '@/components/Card';
 import { ContentCard } from '@/components/ContentCard';
-import { getAllCoursesV3Mock } from '@/actions/course-actions-v3-mock';
+import { getAllCoursesV3Mock } from '@/actions/course-actions';
 
 export const dynamic = 'force-dynamic';
 

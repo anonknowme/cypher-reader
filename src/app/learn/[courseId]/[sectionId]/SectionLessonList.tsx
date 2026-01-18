@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Card } from '@/components/Card';
 import { Badge } from '@/components/Badge';
 import { getCourseProgress, clearCourseProgress, LessonProgress } from '@/lib/progress';
-import type { LessonWithChildrenV3Mock } from '@/actions/course-actions-v3-mock';
+import type { LessonWithChildrenV3Mock } from '@/actions/course-actions';
 
 interface SectionLessonListProps {
     courseId: string;
@@ -53,8 +53,8 @@ export function SectionLessonList({ courseId, sectionId, lessons }: SectionLesso
                         <button
                             onClick={() => setDevMode(!devMode)}
                             className={`text-mini font-medium px-3 py-1.5 rounded-full transition-colors ${devMode
-                                    ? 'bg-semantic-red text-white'
-                                    : 'bg-background-tertiary text-foreground-tertiary hover:bg-background-quaternary'
+                                ? 'bg-semantic-red text-white'
+                                : 'bg-background-tertiary text-foreground-tertiary hover:bg-background-quaternary'
                                 }`}
                         >
                             {devMode ? '🔓 Dev Mode' : '🔒 Lock Mode'}

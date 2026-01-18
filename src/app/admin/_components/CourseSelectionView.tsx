@@ -5,7 +5,7 @@ import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { Badge } from '@/components/Badge';
 import { TextArea } from '@/components/TextArea';
-import { CourseDataV3, SectionDataV3, deleteCourseV3 } from '@/actions/course-actions-v3';
+import { CourseDataV3, SectionDataV3, deleteCourseV3 } from '@/actions/course-actions';
 import { Message, ConfirmDialog } from './types';
 
 export interface CourseSelectionViewProps {

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Badge } from '@/components/Badge';
 import { Card } from '@/components/Card';
 import { getCourseProgress } from '@/lib/progress';
-import type { SectionV3Mock } from '@/actions/course-actions-v3-mock';
+import type { SectionV3Mock } from '@/actions/course-actions';
 
 interface SectionWithLessonCount extends SectionV3Mock {
     lessonCount: number;
@@ -59,8 +59,8 @@ export function SectionSelectionList({ courseId, sections }: SectionSelectionLis
                         <button
                             onClick={() => setDevMode(!devMode)}
                             className={`text-mini font-medium px-3 py-1.5 rounded-full transition-colors ${devMode
-                                    ? 'bg-semantic-red text-white'
-                                    : 'bg-background-tertiary text-foreground-tertiary hover:bg-background-quaternary'
+                                ? 'bg-semantic-red text-white'
+                                : 'bg-background-tertiary text-foreground-tertiary hover:bg-background-quaternary'
                                 }`}
                         >
                             {devMode ? '🔓 Dev Mode' : '🔒 Lock Mode'}

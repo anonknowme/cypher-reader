@@ -1,0 +1,581 @@
+'use server';
+
+import { supabase } from '@/lib/supabase';
+import { revalidatePath } from 'next/cache';
+
+// ============================================
+// Type Definitions (Matching Supabase Schema)
+// ============================================
+
+export interface Course {
+    id: string;
+    title: string;
+    description: string;
+    img_url: string;
+    structure: any; // JSONB
+    created_at: string;
+    updated_at: string;
+}
+
+export interface Section {
+    id: string;
+    course_id: string;
+    title: string;
+    order: number;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface Chunk {
+    order: number;
+    en: string;
+    kr: string;
+}
+
+export interface Lesson {
+    id: string;
+    course_id: string;
+    section_id: string;
+    order: number;
+    title: string;
+    original_text: string;
+    translation_kr: string;
+    context_desc: string;
+    audio_url?: string;
+    chunks: Chunk[]; // JSONB
+    created_at: string;
+    updated_at: string;
+}
+
+export interface VocabularyMaster {
+    lemma: string;
+    definition: string;
+    part_of_speech: string | null;
+}
+
+export interface LessonVocabularyMock { // Retaining 'Mock' suffix for compatibility if needed, or just standardizing
+    id?: string; // Added for UI stability
+    word: string;
+    lemma: string;
+    definition: string;
+    part_of_speech?: string | null;
+    context_match?: boolean;
+}
+
+export interface Quiz {
+    id: string;
+    lesson_id: string;
+    type: string;
+    question: any; // JSONB
+    answer: any;   // JSONB
+    options: any;  // JSONB
+}
+
+// UI Compatible Types
+export interface LessonWithChildren extends Lesson {
+    vocabulary: LessonVocabularyMock[];
+    quizzes: Quiz[];
+}
+
+// ============================================
+// Read Actions
+// ============================================
+
+export async function getAllCourses(): Promise<Course[]> {
+    const { data, error } = await supabase
+        .from('course')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+    if (error) throw new Error(error.message);
+    return data || [];
+}
+
+export async function getCourse(courseId: string): Promise<Course | null> {
+    const { data, error } = await supabase
+        .from('course')
+        .select('*')
+        .eq('id', courseId)
+        .single();
+
+    if (error) return null;
+    return data;
+}
+
+export async function getSections(courseId: string): Promise<Section[]> {
+    const { data, error } = await supabase
+        .from('section')
+        .select('*')
+        .eq('course_id', courseId)
+        .order('order', { ascending: true });
+
+    if (error) throw new Error(error.message);
+    return data || [];
+}
+
+export async function getSection(sectionId: string): Promise<Section | null> {
+    const { data, error } = await supabase
+        .from('section')
+        .select('*')
+        .eq('id', sectionId)
+        .single();
+
+    if (error) return null;
+    return data;
+}
+
+export async function getLessons(sectionId: string): Promise<LessonWithChildren[]> {
+    const { data: lessons, error } = await supabase
+        .from('lesson')
+        .select('*')
+        .eq('section_id', sectionId)
+        .order('order', { ascending: true });
+
+    if (error) throw new Error(error.message);
+    if (!lessons) return [];
+
+    // Fetch details for all lessons in parallel
+    const lessonsWithDetails = await Promise.all(lessons.map(async (lesson) => {
+        return await getLessonDetails(lesson);
+    }));
+
+    return lessonsWithDetails;
+}
+
+export async function getLesson(lessonId: string): Promise<LessonWithChildren | null> {
+    const { data: lesson, error } = await supabase
+        .from('lesson')
+        .select('*')
+        .eq('id', lessonId)
+        .single();
+
+    if (error || !lesson) return null;
+
+    return await getLessonDetails(lesson);
+}
+
+// Helper to hydrate lesson with vocab and quizzes
+async function getLessonDetails(lesson: Lesson): Promise<LessonWithChildren> {
+    // 1. Fetch Vocabulary (Join LessonVocab -> VocabMaster)
+    const { data: vocabData, error: vocabError } = await supabase
+        .from('lesson_vocabulary')
+        .select(`
+            id,
+            word,
+            lemma,
+            context_match,
+            vocabulary_master (
+                definition,
+                part_of_speech
+            )
+        `)
+        .eq('lesson_id', lesson.id);
+
+    const vocabulary: LessonVocabularyMock[] = vocabData?.map((item: any) => ({
+        id: item.id,
+        word: item.word,
+        lemma: item.lemma,
+        context_match: item.context_match,
+        definition: item.vocabulary_master?.definition || '',
+        part_of_speech: item.vocabulary_master?.part_of_speech || null
+    })) || [];
+
+    // 2. Fetch Quizzes
+    const { data: quizzes, error: quizError } = await supabase
+        .from('quiz')
+        .select('*')
+        .eq('lesson_id', lesson.id);
+
+    // Map quiz fields for compatibility if needed
+    const mappedQuizzes = quizzes?.map(q => ({
+        ...q,
+        segments: q.question,      // UI compatibility
+        correctAnswers: q.answer,  // UI compatibility
+        distractors: q.options     // UI compatibility
+    })) || [];
+
+    return {
+        ...lesson,
+        chunks: lesson.chunks || [], // Ensure chunks array
+        vocabulary,
+        quizzes: mappedQuizzes
+    };
+}
+
+export async function getLessonCount(sectionId: string): Promise<number> {
+    const { count, error } = await supabase
+        .from('lesson')
+        .select('*', { count: 'exact', head: true })
+        .eq('section_id', sectionId);
+
+    if (error) throw new Error(error.message);
+    return count || 0;
+}
+
+// ============================================
+// Write Actions
+// ============================================
+
+export async function createCourse(data: { id: string, title: string, description: string, img_url: string }) {
+    const { error } = await supabase
+        .from('course')
+        .insert([{
+            id: data.id,
+            title: data.title,
+            description: data.description,
+            img_url: data.img_url,
+            structure: {}
+        }]);
+
+    if (error) throw new Error(error.message);
+    revalidatePath('/admin2');
+    return data;
+}
+
+export async function createSection(courseId: string, title: string, id?: string) {
+    // Get max order
+    const { data: siblings } = await supabase
+        .from('section')
+        .select('order')
+        .eq('course_id', courseId)
+        .order('order', { ascending: false })
+        .limit(1);
+
+    const maxOrder = siblings?.[0]?.order || 0;
+    const newId = id || `section-${Date.now()}`;
+
+    const { error } = await supabase
+        .from('section')
+        .insert([{
+            id: newId,
+            course_id: courseId,
+            title,
+            order: maxOrder + 1
+        }]);
+
+    if (error) throw new Error(error.message);
+    revalidatePath(`/admin2`);
+    return { id: newId };
+}
+
+export async function deleteSection(sectionId: string) {
+    const { error } = await supabase
+        .from('section')
+        .delete()
+        .eq('id', sectionId);
+
+    if (error) throw new Error(error.message);
+    revalidatePath('/admin2');
+}
+
+export async function createLesson(courseId: string, sectionId: string, id: string) {
+    const { data: siblings } = await supabase
+        .from('lesson')
+        .select('order')
+        .eq('section_id', sectionId)
+        .order('order', { ascending: false })
+        .limit(1);
+
+    const maxOrder = siblings?.[0]?.order || 0;
+
+    const { error } = await supabase
+        .from('lesson')
+        .insert([{
+            id,
+            course_id: courseId,
+            section_id: sectionId,
+            order: maxOrder + 1,
+            title: '',
+            original_text: '',
+            translation_kr: '',
+            context_desc: '',
+            chunks: []
+        }]);
+
+    if (error) throw new Error(error.message);
+    revalidatePath('/admin2');
+    return { id };
+}
+
+export async function updateLesson(lessonId: string, contentJson: any[], metadata?: any) {
+    const content = Array.isArray(contentJson) ? contentJson[0] : contentJson;
+    if (!content) return null;
+
+    // 1. Update Lesson Content
+    const updateData: any = {
+        updated_at: new Date().toISOString()
+    };
+    if (content.original_text !== undefined) updateData.original_text = content.original_text;
+    if (content.translation_kr !== undefined) updateData.translation_kr = content.translation_kr;
+    if (content.context_desc !== undefined) updateData.context_desc = content.context_desc;
+    if (content.audio_url !== undefined) updateData.audio_url = content.audio_url;
+
+    // Auto-title
+    if (content.original_text) {
+        updateData.title = content.original_text.substring(0, 50) + (content.original_text.length > 50 ? '...' : '');
+    }
+
+    // Chunks (JSONB)
+    if (Array.isArray(content.chunks)) {
+        updateData.chunks = content.chunks.map((chunk: any, idx: number) => ({
+            order: idx + 1,
+            en: chunk.en,
+            kr: chunk.kr
+        }));
+    }
+
+    const { error: lessonError } = await supabase
+        .from('lesson')
+        .update(updateData)
+        .eq('id', lessonId);
+
+    if (lessonError) throw new Error(lessonError.message);
+
+    // 2. Update Vocabulary (Sync)
+    if (Array.isArray(content.vocabulary)) {
+        // First delete existing mappings
+        await supabase.from('lesson_vocabulary').delete().eq('lesson_id', lessonId);
+
+        // Process each vocab
+        for (const vocab of content.vocabulary) {
+            // Upsert Master
+            const { error: masterError } = await supabase
+                .from('vocabulary_master')
+                .upsert({
+                    lemma: vocab.lemma,
+                    definition: vocab.definition,
+                    part_of_speech: vocab.part_of_speech
+                }, { onConflict: 'lemma' });
+
+            if (masterError) console.error('Vocab Master Error', masterError);
+
+            // Insert Mapping
+            await supabase.from('lesson_vocabulary').insert({
+                lesson_id: lessonId,
+                lemma: vocab.lemma,
+                word: vocab.word,
+                context_match: vocab.context_match !== false
+            });
+        }
+    }
+
+    // 3. Update Quizzes
+    if (Array.isArray(content.quizzes)) {
+        // Replace all quizzes
+        await supabase.from('quiz').delete().eq('lesson_id', lessonId);
+
+        const newQuizzes = content.quizzes.map((q: any) => ({
+            id: q.id && !q.id.startsWith('temp-') ? q.id : undefined, // Let DB gen UUID if new
+            lesson_id: lessonId,
+            type: q.type || 'blank',
+            question: q.segments || q.question,
+            answer: q.correctAnswers || q.answer,
+            options: q.distractors || q.options
+        }));
+
+        if (newQuizzes.length > 0) {
+            await supabase.from('quiz').insert(newQuizzes);
+        }
+    }
+
+    revalidatePath('/admin2');
+    revalidatePath(`/learn`);
+    return await getLesson(lessonId);
+}
+
+export async function deleteLesson(lessonId: string) {
+    // 1. Get info before delete for reordering
+    const { data: lesson } = await supabase
+        .from('lesson')
+        .select('section_id, order')
+        .eq('id', lessonId)
+        .single();
+
+    if (!lesson) return { success: false };
+
+    // 2. Delete Lesson (Cascade will handle chunks, vocab, quiz)
+    const { error } = await supabase
+        .from('lesson')
+        .delete()
+        .eq('id', lessonId);
+
+    if (error) throw new Error(error.message);
+
+    // 3. Reorder subsequent lessons
+    // Note: This is loop-heavy, ideally stored proc. For now, doing it client-side.
+    const { data: subsequent } = await supabase
+        .from('lesson')
+        .select('id, order')
+        .eq('section_id', lesson.section_id)
+        .gt('order', lesson.order);
+
+    if (subsequent && subsequent.length > 0) {
+        for (const l of subsequent) {
+            await supabase
+                .from('lesson')
+                .update({ order: l.order - 1 })
+                .eq('id', l.id);
+        }
+    }
+
+    revalidatePath('/admin2');
+    return { success: true };
+}
+
+export async function mergeLessons(targetLessonId: string, sourceLessonId: string) {
+    const target = await getLesson(targetLessonId);
+    const source = await getLesson(sourceLessonId);
+
+    if (!target || !source) throw new Error("Lesson not found");
+
+    // 1. Prepare Merged Data
+    const mergedText = target.original_text + "\n\n" + source.original_text;
+    const mergedTrans = target.translation_kr + "\n\n" + source.translation_kr;
+    const mergedCtx = target.context_desc + " | " + source.context_desc;
+
+    // Chunks
+    const targetChunks = target.chunks || [];
+    const sourceChunks = (source.chunks || []).map((chunk, idx) => ({
+        ...chunk,
+        order: targetChunks.length + idx + 1
+    }));
+    const mergedChunks = [...targetChunks, ...sourceChunks];
+
+    // Vocabulary
+    // Merging simply means we add source's vocab to target
+    // We can do this by updating the lesson_id of source's vocab mappings
+
+    // Quizzes
+    // Update lesson_id of source's quizzes to target
+
+    // 2. Perform Updates
+    // Update Target Text & Chunks
+    await supabase.from('lesson').update({
+        original_text: mergedText,
+        translation_kr: mergedTrans,
+        context_desc: mergedCtx,
+        chunks: mergedChunks, // JSONB update
+        updated_at: new Date().toISOString()
+    }).eq('id', targetLessonId);
+
+    // Relink Vocabulary
+    await supabase.from('lesson_vocabulary')
+        .update({ lesson_id: targetLessonId })
+        .eq('lesson_id', sourceLessonId); // Note: might cause Unique Constraint violations if same word exists!
+    // A smarter approach is needed for vocab to avoid unique error: "lesson_id, lemma, word"
+    // For simplicity in this step, we'll ignore conflicts or handle them?
+    // Supabase simple update doesn't handle ON CONFLICT on update.
+    // Let's retry: Read source vocab, insert into target ignoring conflicts, delete source mappings
+    const { data: sourceVocabData } = await supabase.from('lesson_vocabulary').select('*').eq('lesson_id', sourceLessonId);
+    if (sourceVocabData) {
+        for (const v of sourceVocabData) {
+            const { error } = await supabase.from('lesson_vocabulary').insert({
+                lesson_id: targetLessonId,
+                lemma: v.lemma,
+                word: v.word,
+                context_match: v.context_match
+            }); // If conflict, it will fail (error), which is fine, we skip duplicates
+        }
+    }
+
+    // Relink Quizzes
+    await supabase.from('quiz')
+        .update({ lesson_id: targetLessonId })
+        .eq('lesson_id', sourceLessonId);
+
+    // 3. Delete Source Lesson (And reorder)
+    await deleteLesson(sourceLessonId);
+
+    revalidatePath('/admin2');
+    return { success: true };
+}
+
+
+// ============================================
+// Helper Actions (Legacy V3 Support)
+// ============================================
+
+export async function deleteAllLessonsInSection(sectionId: string) {
+    const { error } = await supabase
+        .from('lesson')
+        .delete()
+        .eq('section_id', sectionId);
+
+    if (error) throw new Error(error.message);
+    revalidatePath('/admin2');
+    return { success: true };
+}
+
+export async function getAllLessonsForCourse(courseId: string) {
+    const { data, error } = await supabase
+        .from('lesson')
+        .select('*')
+        .eq('course_id', courseId);
+
+    if (error) throw new Error(error.message);
+    return data || [];
+}
+
+export async function getLessonSummaries(sectionId: string) {
+    const { data, error } = await supabase
+        .from('lesson')
+        .select('id, section_id, order, title, original_text, chunks')
+        .eq('section_id', sectionId)
+        .order('order', { ascending: true });
+
+    if (error) throw new Error(error.message);
+
+    return (data || []).map(l => ({
+        id: l.id,
+        section_id: l.section_id,
+        order: l.order,
+        title: l.title || (l.original_text ? (l.original_text.substring(0, 50) + '...') : 'No content'),
+        preview: l.original_text ? (l.original_text.substring(0, 100) + '...') : 'No content',
+        chunkCount: Array.isArray(l.chunks) ? l.chunks.length : 0,
+        subLessonCount: 1
+    }));
+}
+
+// Aliases for compatibility
+export const getAllCoursesV3Mock = getAllCourses;
+export const getCourseV3Mock = getCourse;
+export const getSectionsV3Mock = getSections;
+export const getSectionV3Mock = getSection;
+export const getLessonsV3Mock = getLessons;
+export const getLessonV3Mock = getLesson;
+export const getLessonCountV3Mock = getLessonCount;
+
+export const createCourseV3 = createCourse;
+export const createSectionV3 = createSection;
+export const createLessonV3 = createLesson;
+export const updateLessonV3 = updateLesson;
+export const deleteLessonV3 = deleteLesson;
+export const mergeLessonsV3 = mergeLessons;
+export const deleteSectionV3 = deleteSection;
+export const createCourseV3Mock = createCourse; // Stub
+export const deleteCourseV3 = async (id: string) => { console.warn('Delete Course not implemented fully'); return { success: false }; }; // Stub if needed
+
+// Missing V3 Exports
+export const getAllCoursesV3 = getAllCourses;
+export const getSectionsV3 = getSections;
+export const getLessonV3 = getLesson;
+export const getLessonSummariesV3 = getLessonSummaries;
+export const getAllLessonsV3 = getAllLessonsForCourse;
+export const deleteAllLessonsInSectionV3 = deleteAllLessonsInSection;
+export const migrateV2toV3 = async () => ({ success: true, stats: { lessons: 0 } }); // No-op stub
+
+// Type Aliases for Compatibility
+export type CourseV3Mock = Course;
+export type SectionV3Mock = Section;
+export type LessonV3Mock = Lesson;
+export type LessonWithChildrenV3Mock = LessonWithChildren;
+export type ChunkV3Mock = Chunk;
+export type VocabV3Mock = LessonVocabularyMock;
+export type QuizV3Mock = Quiz;
+
+export type CourseDataV3 = Course;
+export type SectionDataV3 = Section;
+export type LessonDataV3 = Lesson;
+export type ChunkDataV3 = Chunk;
+export type VocabularyDataV3 = LessonVocabularyMock;
+export type QuizDataV3 = Quiz;

@@ -9,7 +9,7 @@ import {
     CourseDataV3,
     SectionDataV3,
     LessonWithChildren
-} from '@/actions/course-actions-v3';
+} from '@/actions/course-actions';
 import { Message, ConfirmDialog } from './types';
 
 export interface CourseDashboardViewProps {
