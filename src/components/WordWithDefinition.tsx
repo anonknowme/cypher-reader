@@ -6,13 +6,40 @@ interface WordWithDefinitionProps {
     word: string;
     def: string;
     showAlways?: boolean;
+    level?: string | null;
 }
 
-export function WordWithDefinition({ word, def, showAlways = false }: WordWithDefinitionProps) {
+export function WordWithDefinition({ word, def, showAlways = false, level }: WordWithDefinitionProps) {
     const [isOpen, setIsOpen] = useState(false);
-    // If "Show All Meanings" is on (showAlways), we show the definition.
-    // Otherwise, we show it on click (isOpen).
     const isVisible = showAlways || isOpen;
+
+    // Level-based Colors
+    // Default is Orange (Accent)
+    let textColor = 'text-orange-600';
+    let bgColor = 'bg-orange-500/5';
+    let hoverBgColor = 'hover:bg-foreground-primary/5';
+    let borderColor = 'border-orange-500';
+    let borderColorFaded = 'border-orange-500/40';
+
+    if (level) {
+        const normalized = level.toUpperCase();
+        if (normalized === 'BEGINNER') {
+            textColor = 'text-green-600';
+            bgColor = 'bg-green-500/10';
+            borderColor = 'border-green-500';
+            borderColorFaded = 'border-green-500/40';
+        } else if (normalized === 'INTERMEDIATE') {
+            textColor = 'text-blue-600';
+            bgColor = 'bg-blue-500/10';
+            borderColor = 'border-blue-500';
+            borderColorFaded = 'border-blue-500/40';
+        } else if (normalized === 'BITCOIN_TERM') {
+            textColor = 'text-accent-default';
+            bgColor = 'bg-accent-default/10';
+            borderColor = 'border-accent-default';
+            borderColorFaded = 'border-accent-default/40';
+        }
+    }
 
     return (
         <span
@@ -24,12 +51,12 @@ export function WordWithDefinition({ word, def, showAlways = false }: WordWithDe
             role="button"
             tabIndex={0}
         >
-            {/* Definition - Top (Flows in same block) */}
-            {/* We render this BEFORE the word so it sits on top in the block flow. */}
+            {/* Definition */}
             <span className={`
                 block w-max max-w-[200px] mx-auto mb-0.5
-                text-[0.6em] font-medium text-accent-default text-center leading-tight whitespace-normal
+                text-[0.6em] font-medium text-center leading-tight whitespace-normal
                 transition-all duration-200 ease-out
+                ${textColor}
                 ${isVisible
                     ? 'opacity-100 max-h-[200px] py-0.5'
                     : 'opacity-0 max-h-0 overflow-hidden py-0'}
@@ -37,15 +64,15 @@ export function WordWithDefinition({ word, def, showAlways = false }: WordWithDe
                 {def}
             </span>
 
-            {/* The Word - Bottom (Last line determines baseline) */}
+            {/* Word */}
             <span className={`
                 block text-center leading-none px-0.5 rounded-sm
                 transition-all duration-200
                 ${isVisible
-                    ? 'text-accent-default font-medium bg-accent-default/5'
-                    : 'text-foreground-primary hover:bg-foreground-primary/5'}
+                    ? `${textColor} font-medium ${bgColor}`
+                    : `text-foreground-primary ${hoverBgColor}`}
                 border-b border-dashed 
-                ${isVisible ? 'border-accent-default' : 'border-accent-default/40 group-hover:border-accent-default'}
+                ${isVisible ? borderColor : `${borderColorFaded} group-hover:${borderColor}`}
             `}>
                 {word}
             </span>

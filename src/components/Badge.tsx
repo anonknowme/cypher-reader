@@ -1,7 +1,7 @@
 import React from 'react';
 
 type BadgeVariant = 'solid' | 'soft' | 'outline';
-type BadgeColor = 'accent' | 'blue' | 'green' | 'red' | 'orange' | 'yellow' | 'gray';
+type BadgeColor = 'accent' | 'blue' | 'green' | 'red' | 'orange' | 'yellow' | 'purple' | 'gray';
 
 interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
     variant?: BadgeVariant;
@@ -17,6 +17,7 @@ const variantStyles: Record<BadgeVariant, Record<BadgeColor, string>> = {
         red: 'bg-semantic-red text-white border-transparent',
         orange: 'bg-semantic-orange text-white border-transparent',
         yellow: 'bg-semantic-yellow text-black border-transparent',
+        purple: 'bg-purple-500 text-white border-transparent',
         gray: 'bg-background-tertiary text-foreground-primary border-transparent',
     },
     soft: {
@@ -26,6 +27,7 @@ const variantStyles: Record<BadgeVariant, Record<BadgeColor, string>> = {
         red: 'bg-semantic-red/15 text-semantic-red border-transparent',
         orange: 'bg-semantic-orange/15 text-semantic-orange border-transparent',
         yellow: 'bg-semantic-yellow/15 text-semantic-yellow border-transparent',
+        purple: 'bg-purple-500/15 text-purple-600 border-transparent',
         gray: 'bg-background-tertiary/50 text-foreground-secondary border-transparent',
     },
     outline: {
@@ -35,6 +37,7 @@ const variantStyles: Record<BadgeVariant, Record<BadgeColor, string>> = {
         red: 'bg-transparent text-semantic-red border-semantic-red/30',
         orange: 'bg-transparent text-semantic-orange border-semantic-orange/30',
         yellow: 'bg-transparent text-semantic-yellow border-semantic-yellow/30',
+        purple: 'bg-transparent text-purple-600 border-purple-500/30',
         gray: 'bg-transparent text-foreground-secondary border-border-secondary',
     }
 };

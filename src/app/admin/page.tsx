@@ -201,6 +201,12 @@ export default function AdminPage2() {
                     Admin 2.0 (V3 Engine)
                 </h1>
                 <div className="flex gap-2">
+                    <Link href="/admin/tools/splitter">
+                        <Button variant="secondary">✂️ Splitter</Button>
+                    </Link>
+                    <Link href="/admin/tools/inspection">
+                        <Button variant="secondary">🔍 Inspect</Button>
+                    </Link>
                     <Button variant="secondary" onClick={() => window.open('/prototype', '_blank')}>
                         View Prototype
                     </Button>

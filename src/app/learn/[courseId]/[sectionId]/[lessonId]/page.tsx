@@ -34,7 +34,8 @@ export default async function LearnLessonPage({
         vocabulary: lesson.vocabulary.map(v => ({
             word: v.word,
             definition: v.definition,
-            lemma: v.lemma
+            lemma: v.lemma,
+            level: v.level
         })),
         quizzes: lesson.quizzes.map(q => ({
             segments: q.question,

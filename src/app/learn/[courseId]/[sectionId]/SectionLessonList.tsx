@@ -76,7 +76,8 @@ export function SectionLessonList({ courseId, sectionId, lessons }: SectionLesso
                     // Lock logic: Unlocked if it's the first lesson OR previous lesson is completed OR dev mode
                     const prevLesson = idx > 0 ? lessons[idx - 1] : null;
                     const prevLessonProgress = prevLesson ? progressMap[prevLesson.id] : null;
-                    const isLocked = !devMode && idx > 0 && prevLessonProgress?.status !== 'completed';
+                    // const isLocked = !devMode && idx > 0 && prevLessonProgress?.status !== 'completed';
+                    const isLocked = false
 
                     const CardContent = (
                         <Card
@@ -121,7 +122,8 @@ export function SectionLessonList({ courseId, sectionId, lessons }: SectionLesso
                                     </div>
                                     <div className="flex items-center gap-2 mb-2">
                                         <Badge color="blue" variant="outline">{lesson.chunks.length} chunks</Badge>
-                                        <Badge color="green" variant="outline">{lesson.vocabulary.length} words</Badge>
+                                        <Badge color="purple" variant="outline">{lesson.original_text?.trim().split(/\s+/).filter(w => w.length > 0).length || 0} words</Badge>
+                                        <Badge color="green" variant="outline">{lesson.vocabulary.length} voca</Badge>
                                     </div>
                                     <p className="text-small text-foreground-tertiary line-clamp-2">
                                         {lesson.context_desc || lesson.translation_kr}

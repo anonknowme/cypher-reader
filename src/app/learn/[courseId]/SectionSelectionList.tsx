@@ -80,7 +80,8 @@ export function SectionSelectionList({ courseId, sections }: SectionSelectionLis
                     const prevSection = idx > 0 ? sections[idx - 1] : null;
                     const prevSectionProgress = prevSection ? sectionProgressMap[prevSection.id] : null;
                     const prevSectionCompleted = prevSectionProgress && prevSectionProgress.completed === prevSectionProgress.total && prevSectionProgress.total > 0;
-                    const isLocked = !devMode && idx > 0 && !prevSectionCompleted;
+                    // const isLocked = !devMode && idx > 0 && !prevSectionCompleted;
+                    const isLocked = false
 
                     const progressPercent = progress ? Math.round((progress.completed / progress.total) * 100) : 0;
 

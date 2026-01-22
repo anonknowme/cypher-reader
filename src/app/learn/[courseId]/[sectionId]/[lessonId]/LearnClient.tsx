@@ -179,7 +179,7 @@ export function LearnClient({ slug, lessonId, lessonData }: LearnClientProps) {
                 sortedVocab.find(v => match.toLowerCase().includes(v.word.toLowerCase()));
 
             if (vocabItem) {
-                parts.push(<WordWithDefinition key={offset} word={match} def={vocabItem.definition} showAlways={showDefinitions} />);
+                parts.push(<WordWithDefinition key={offset} word={match} def={vocabItem.definition} showAlways={showDefinitions} level={vocabItem.level} />);
             } else {
                 parts.push(match);
             }
@@ -314,12 +314,19 @@ export function LearnClient({ slug, lessonId, lessonData }: LearnClientProps) {
                                     <Badge color="gray" variant="outline">2단계</Badge>
                                     <h2 className="text-title3 font-bold">원문 읽기</h2>
                                 </div>
-                                <button
-                                    onClick={() => setShowDefinitions(!showDefinitions)}
-                                    className={`text-small font-medium px-3 py-1.5 rounded-full transition-colors ${!showDefinitions ? 'bg-accent-default text-white shadow-low hover:bg-accent-hover' : 'bg-background-tertiary text-foreground-secondary hover:bg-background-quaternary'}`}
-                                >
-                                    단어 뜻 {showDefinitions ? '숨기기' : '보기'}
-                                </button>
+                                <div className="flex items-center gap-4">
+                                    <div className="hidden sm:flex items-center gap-3 text-small text-foreground-tertiary">
+                                        <div className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-green-500"></span>초급</div>
+                                        <div className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-blue-500"></span>중급</div>
+                                        <div className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-accent-default"></span>Bitcoin</div>
+                                    </div>
+                                    <button
+                                        onClick={() => setShowDefinitions(!showDefinitions)}
+                                        className={`text-small font-medium px-3 py-1.5 rounded-full transition-colors ${!showDefinitions ? 'bg-accent-default text-white shadow-low hover:bg-accent-hover' : 'bg-background-tertiary text-foreground-secondary hover:bg-background-quaternary'}`}
+                                    >
+                                        단어 뜻 {showDefinitions ? '숨기기' : '보기'}
+                                    </button>
+                                </div>
                             </div>
                             <Card level="2" padding="large" className="border-accent-default/20 space-y-8">
                                 {data.chunks.map((chunk, idx) => (

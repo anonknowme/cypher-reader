@@ -10,7 +10,7 @@ export interface LessonData {
   translation_kr: string;
   context_desc: string;
   chunks: { en: string; kr: string }[];
-  vocabulary: { word: string; lemma?: string; definition: string; context_match?: boolean }[];
+  vocabulary: { word: string; lemma?: string; definition: string; context_match?: boolean; level?: string | null }[];
   quizzes?: {
     segments: { type: string; content: string; id?: number }[];
     correctAnswers: string[];

@@ -449,7 +449,17 @@ ${JSON.stringify(payload, null, 2)}`;
                                         <div>
                                             <h6 className="text-small font-bold text-foreground-primary group-hover:text-accent-default flex items-center gap-2">
                                                 Lesson {lesson.order}
-                                                {/*  */}
+                                                <div className="flex gap-1.5 ml-2">
+                                                    <Badge variant="soft" color="blue" className="px-1.5 py-0 text-[10px] h-5">
+                                                        {lesson.chunkCount} chunks
+                                                    </Badge>
+                                                    <Badge variant="soft" color="purple" className="px-1.5 py-0 text-[10px] h-5">
+                                                        {lesson.totalWordCount || 0} words
+                                                    </Badge>
+                                                    <Badge variant="soft" color="green" className="px-1.5 py-0 text-[10px] h-5">
+                                                        {lesson.vocabularyCount || 0} voca
+                                                    </Badge>
+                                                </div>
                                             </h6>
                                             <p className="text-small text-foreground-tertiary truncate max-w-md">{lesson.preview || 'No content'}</p>
                                         </div>
