@@ -1,7 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/Button';
-import { getLessonsV3Mock } from '@/actions/course-actions';
+import { getLessons } from '@/actions/course-actions';
 import { LearnClient } from './LearnClient';
 
 export default async function LearnLessonPage({
@@ -11,7 +11,7 @@ export default async function LearnLessonPage({
 }) {
     const { courseId, sectionId, lessonId } = await params;
 
-    const lessons = await getLessonsV3Mock(sectionId);
+    const lessons = await getLessons(sectionId);
     const lesson = lessons.find(l => l.id === lessonId);
 
     if (!lesson) {

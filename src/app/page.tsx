@@ -1,12 +1,12 @@
 import Link from 'next/link';
 import { Card } from '@/components/Card';
 import { ContentCard } from '@/components/ContentCard';
-import { getAllCoursesV3Mock } from '@/actions/course-actions';
+import { getAllCourses } from '@/actions/course-actions';
 
 export const dynamic = 'force-dynamic';
 
 export default async function Home() {
-  const courses = await getAllCoursesV3Mock();
+  const courses = await getAllCourses();
 
   // Helper to generate deterministic gradient based on string
   const getGradient = (str: string) => {

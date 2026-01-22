@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { Badge } from '@/components/Badge';
 import { Button } from '@/components/Button';
-import { getCourseV3Mock, getSectionV3Mock, getLessonsV3Mock } from '@/actions/course-actions';
+import { getCourse, getSection, getLessons } from '@/actions/course-actions';
 import { SectionLessonList } from './SectionLessonList';
 
 export default async function LearnSectionPage({
@@ -12,9 +12,9 @@ export default async function LearnSectionPage({
     const { courseId, sectionId } = await params;
 
     const [course, section, lessons] = await Promise.all([
-        getCourseV3Mock(courseId),
-        getSectionV3Mock(sectionId),
-        getLessonsV3Mock(sectionId)
+        getCourse(courseId),
+        getSection(sectionId),
+        getLessons(sectionId)
     ]);
 
     if (!course || !section) {

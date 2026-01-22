@@ -10,14 +10,15 @@ import { TextArea } from '@/components/TextArea';
 import { VoiceRecorder } from '@/components/VoiceRecorder';
 import { TypingFeedback } from '@/components/TypingFeedback';
 import { WordWithDefinition } from '@/components/WordWithDefinition';
-import type { LessonWithChildrenV3Mock } from '@/actions/course-actions';
+import { renderChunkWithVocab, renderKaraokeText } from '@/lib/textRenderers';
+import type { LessonWithChildren } from '@/actions/course-actions';
 
 interface SectionLearnClientProps {
     courseId: string;
     sectionId: string;
     sectionTitle: string;
     courseTitle: string;
-    lessons: LessonWithChildrenV3Mock[];
+    lessons: LessonWithChildren[];
 }
 
 export function SectionLearnClient({
@@ -69,64 +70,7 @@ export function SectionLearnClient({
         }));
     };
 
-    // Helper to render text with vocabulary highlighting
-    const renderChunkWithVocab = (text: string, vocabulary: any[], showDefinitions: boolean) => {
-        const sortedVocab = [...vocabulary]
-            .filter(v => v.word && v.word.trim().length > 0)
-            .sort((a, b) => b.word.length - a.word.length);
-
-        const pattern = new RegExp(`\\b(${sortedVocab.map(v => v.word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})\\b`, 'gi');
-
-        const parts = [];
-        let lastIndex = 0;
-
-        text.replace(pattern, (match, p1, offset) => {
-            if (offset > lastIndex) {
-                parts.push(text.slice(lastIndex, offset));
-            }
-
-            const vocabItem = sortedVocab.find(v => v.word.toLowerCase() === match.toLowerCase()) ||
-                sortedVocab.find(v => match.toLowerCase().includes(v.word.toLowerCase()));
-
-            if (vocabItem) {
-                parts.push(<WordWithDefinition key={offset} word={match} def={vocabItem.definition} showAlways={showDefinitions} />);
-            } else {
-                parts.push(match);
-            }
-
-            lastIndex = offset + match.length;
-            return match;
-        });
-
-        if (lastIndex < text.length) {
-            parts.push(text.slice(lastIndex));
-        }
-
-        return parts.length > 0 ? parts : [text];
-    };
-
-    // Helper to render karaoke text
-    const renderKaraokeText = (text: string, currentIndex: number) => {
-        const words = text.split(' ');
-        let charCount = 0;
-
-        return (
-            <span className="text-title2 font-serif font-medium text-foreground-secondary leading-relaxed">
-                {words.map((word, i) => {
-                    const wordStart = charCount;
-                    const wordEnd = wordStart + word.length;
-                    const isHighlighted = currentIndex >= wordStart && currentIndex < wordEnd;
-                    charCount += word.length + 1;
-
-                    return (
-                        <span key={i} className={`transition-colors duration-200 ${isHighlighted ? 'text-accent-default scale-105 inline-block' : 'opacity-100'}`}>
-                            {word}{' '}
-                        </span>
-                    );
-                })}
-            </span>
-        );
-    };
+    // Text rendering now uses shared utilities from @/lib/textRenderers
 
     if (Object.keys(lessonStates).length === 0) {
         return <div>Loading...</div>;

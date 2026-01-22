@@ -8,24 +8,23 @@ import { Card } from '@/components/Card';
 import { Badge } from '@/components/Badge';
 import { TextArea } from '@/components/TextArea';
 import {
-    getAllCoursesV3,
-    createCourseV3,
-    getSectionsV3,
-    createSectionV3,
-    getLessonSummariesV3,
-    getAllLessonsV3,
-    createLessonV3,
-    updateLessonV3,
-    getLessonV3,
-    deleteCourseV3,
-    deleteSectionV3,
-    deleteLessonV3,
-    deleteAllLessonsInSectionV3,
-    mergeLessonsV3,
-    migrateV2toV3,
-    CourseDataV3,
-    SectionDataV3,
-    LessonDataV3,
+    getAllCourses,
+    createCourse,
+    getSections,
+    createSection,
+    getLessonSummaries,
+    getAllLessonsForCourse,
+    createLesson,
+    updateLesson,
+    getLesson,
+    deleteCourse,
+    deleteSection,
+    deleteLesson,
+    deleteAllLessonsInSection,
+    mergeLessons,
+    Course,
+    Section,
+    Lesson,
     LessonWithChildren
 } from '@/actions/course-actions';
 
@@ -36,7 +35,7 @@ import { CourseDashboardView } from './_components/CourseDashboardView';
 
 export default function AdminPage2() {
     // Top Level State
-    const [courses, setCourses] = useState<CourseDataV3[]>([]);
+    const [courses, setCourses] = useState<Course[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
     const [isUnsavedChanges, setUnsavedChanges] = useState(false);
@@ -84,13 +83,13 @@ export default function AdminPage2() {
     const [editMode, setEditMode] = useState<'structure' | 'vocab'>('structure');
 
     // Selected Course State (Step 2)
-    const [selectedCourse, setSelectedCourse] = useState<CourseDataV3 | null>(null);
+    const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
 
     // Define extended type locally or use from V3 if exported
     type LessonWithContent = LessonWithChildren;
 
-    const [sections, setSections] = useState<SectionDataV3[]>([]); // Sections in selected course
-    const [selectedSection, setSelectedSection] = useState<SectionDataV3 | null>(null); // Selected section
+    const [sections, setSections] = useState<Section[]>([]); // Sections in selected course
+    const [selectedSection, setSelectedSection] = useState<Section | null>(null); // Selected section
     const [allLessons, setAllLessons] = useState<any[]>([]); // All lessons in the course (for badge counts)
     const [lessons, setLessons] = useState<any[]>([]); // Lessons in selected section
 
@@ -123,12 +122,12 @@ export default function AdminPage2() {
     const loadCourses = async () => {
         setIsLoading(true);
         try {
-            const list = await getAllCoursesV3();
+            const list = await getAllCourses();
             setCourses(list);
 
             // Load all sections for all courses to display counts
             const allSections = await Promise.all(
-                list.map(course => getSectionsV3(course.id))
+                list.map(course => getSections(course.id))
             );
             setSections(allSections.flat());
         } catch (e) {
@@ -147,7 +146,7 @@ export default function AdminPage2() {
         setIsLoading(true);
         try {
             const newCourse = { id, title, description: desc, img_url: imgUrl };
-            await createCourseV3(newCourse);
+            await createCourse(newCourse);
             await loadCourses();
             setMessage({ type: 'success', text: 'Course created successfully.' });
         } catch (e) {
@@ -157,18 +156,18 @@ export default function AdminPage2() {
         }
     };
 
-    const handleSelectCourse = async (course: CourseDataV3) => {
+    const handleSelectCourse = async (course: Course) => {
         setSelectedCourse(course);
         setSelectedSection(null); // Reset section selection
         setActiveLesson(null); // Reset active lesson
         setLessons([]); // Clear selected section lessons
         setIsLoading(true);
         try {
-            const courseSections = await getSectionsV3(course.id);
+            const courseSections = await getSections(course.id);
             setSections(courseSections);
 
             // Load all lessons for badge counts
-            const allCourseLessons = await getAllLessonsV3(course.id);
+            const allCourseLessons = await getAllLessonsForCourse(course.id);
             setAllLessons(allCourseLessons);
         } catch (e) {
             setMessage({ type: 'error', text: 'Failed to load sections' });
@@ -178,11 +177,11 @@ export default function AdminPage2() {
     };
 
 
-    const handleSelectSection = async (section: SectionDataV3) => {
+    const handleSelectSection = async (section: Section) => {
         setSelectedSection(section);
         setIsLoading(true);
         try {
-            const sectionLessons = await getLessonSummariesV3(section.id);
+            const sectionLessons = await getLessonSummaries(section.id);
             setLessons(sectionLessons);
         } catch (e) {
             setMessage({ type: 'error', text: 'Failed to load lessons' });
@@ -267,15 +266,15 @@ export default function AdminPage2() {
                         lessons={lessons}
                         handleSelectCourse={handleSelectCourse}
                         handleSelectSection={handleSelectSection}
-                        createSectionV3={createSectionV3}
-                        getLessonSummariesV3={getLessonSummariesV3}
-                        getLessonV3={getLessonV3}
-                        createLessonV3={createLessonV3}
-                        updateLessonV3={updateLessonV3}
-                        deleteSectionV3={deleteSectionV3}
-                        deleteLessonV3={deleteLessonV3}
-                        deleteAllLessonsInSectionV3={deleteAllLessonsInSectionV3}
-                        mergeLessonsV3={mergeLessonsV3}
+                        createSection={createSection}
+                        getLessonSummaries={getLessonSummaries}
+                        getLesson={getLesson}
+                        createLesson={createLesson}
+                        updateLesson={updateLesson}
+                        deleteSection={deleteSection}
+                        deleteLesson={deleteLesson}
+                        deleteAllLessonsInSection={deleteAllLessonsInSection}
+                        mergeLessons={mergeLessons}
                         setActiveLesson={setActiveLesson}
                         setLessons={setLessons}
                         setSelectedSection={setSelectedSection}

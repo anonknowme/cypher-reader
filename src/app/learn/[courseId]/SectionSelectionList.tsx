@@ -5,9 +5,9 @@ import Link from 'next/link';
 import { Badge } from '@/components/Badge';
 import { Card } from '@/components/Card';
 import { getCourseProgress } from '@/lib/progress';
-import type { SectionV3Mock } from '@/actions/course-actions';
+import type { Section } from '@/actions/course-actions';
 
-interface SectionWithLessonCount extends SectionV3Mock {
+interface SectionWithLessonCount extends Section {
     lessonCount: number;
 }
 

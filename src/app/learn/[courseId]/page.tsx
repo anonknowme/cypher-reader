@@ -1,12 +1,12 @@
 import Link from 'next/link';
 import { Badge } from '@/components/Badge';
 import { Button } from '@/components/Button';
-import { getCourseV3Mock, getSectionsV3Mock, getLessonCountV3Mock } from '@/actions/course-actions';
+import { getCourse, getSections, getLessonCount } from '@/actions/course-actions';
 import { SectionSelectionList } from './SectionSelectionList';
 
 export default async function LearnCoursePage({ params }: { params: Promise<{ courseId: string }> }) {
     const { courseId } = await params;
-    const course = await getCourseV3Mock(courseId);
+    const course = await getCourse(courseId);
 
     if (!course) {
         return (
@@ -19,13 +19,13 @@ export default async function LearnCoursePage({ params }: { params: Promise<{ co
         );
     }
 
-    const sections = await getSectionsV3Mock(courseId);
+    const sections = await getSections(courseId);
 
     // Get lesson counts for each section
     const sectionsWithCounts = await Promise.all(
         sections.map(async (section) => ({
             ...section,
-            lessonCount: await getLessonCountV3Mock(section.id)
+            lessonCount: await getLessonCount(section.id)
         }))
     );
 

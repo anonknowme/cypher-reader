@@ -6,33 +6,33 @@ import { Card } from '@/components/Card';
 import { Badge } from '@/components/Badge';
 import { TextArea } from '@/components/TextArea';
 import {
-    CourseDataV3,
-    SectionDataV3,
+    Course,
+    Section,
     LessonWithChildren
 } from '@/actions/course-actions';
 import { Message, ConfirmDialog } from './types';
 
 export interface CourseDashboardViewProps {
-    selectedCourse: CourseDataV3 | null;
+    selectedCourse: Course | null;
     activeLesson: LessonWithChildren | null;
-    selectedSection: SectionDataV3 | null;
-    sections: SectionDataV3[];
+    selectedSection: Section | null;
+    sections: Section[];
     allLessons: any[];
     lessons: any[];
-    handleSelectCourse: (course: CourseDataV3) => Promise<void>;
-    handleSelectSection: (section: SectionDataV3) => Promise<void>;
-    createSectionV3: (courseId: string, title: string) => Promise<any>;
-    getLessonSummariesV3: (sectionId: string) => Promise<any[]>;
-    getLessonV3: (lessonId: string) => Promise<LessonWithChildren | null | undefined>;
-    createLessonV3: (courseId: string, sectionId: string, lessonId: string) => Promise<any>;
-    updateLessonV3: (lessonId: string, content: any[], options?: any) => Promise<any>;
-    deleteSectionV3: (sectionId: string) => Promise<void | { success: boolean }>;
-    deleteLessonV3: (lessonId: string) => Promise<void | { success: boolean }>;
-    deleteAllLessonsInSectionV3: (sectionId: string) => Promise<void | { success: boolean }>;
-    mergeLessonsV3: (firstId: string, secondId: string) => Promise<void | { success: boolean }>;
+    handleSelectCourse: (course: Course) => Promise<void>;
+    handleSelectSection: (section: Section) => Promise<void>;
+    createSection: (courseId: string, title: string) => Promise<any>;
+    getLessonSummaries: (sectionId: string) => Promise<any[]>;
+    getLesson: (lessonId: string) => Promise<LessonWithChildren | null | undefined>;
+    createLesson: (courseId: string, sectionId: string, lessonId: string) => Promise<any>;
+    updateLesson: (lessonId: string, content: any[], options?: any) => Promise<any>;
+    deleteSection: (sectionId: string) => Promise<void | { success: boolean }>;
+    deleteLesson: (lessonId: string) => Promise<void | { success: boolean }>;
+    deleteAllLessonsInSection: (sectionId: string) => Promise<void | { success: boolean }>;
+    mergeLessons: (firstId: string, secondId: string) => Promise<void | { success: boolean }>;
     setActiveLesson: (lesson: LessonWithChildren | null) => void;
     setLessons: (lessons: any[]) => void;
-    setSelectedSection: (section: SectionDataV3 | null) => void;
+    setSelectedSection: (section: Section | null) => void;
     setIsLoading: (loading: boolean) => void;
     setMessage: (msg: Message | null) => void;
 }
@@ -46,15 +46,15 @@ export const CourseDashboardView = ({
     lessons,
     handleSelectCourse,
     handleSelectSection,
-    createSectionV3,
-    getLessonSummariesV3,
-    getLessonV3,
-    createLessonV3,
-    updateLessonV3,
-    deleteSectionV3,
-    deleteLessonV3,
-    deleteAllLessonsInSectionV3,
-    mergeLessonsV3,
+    createSection,
+    getLessonSummaries,
+    getLesson,
+    createLesson,
+    updateLesson,
+    deleteSection,
+    deleteLesson,
+    deleteAllLessonsInSection,
+    mergeLessons,
     setActiveLesson,
     setLessons,
     setSelectedSection,
@@ -75,7 +75,7 @@ export const CourseDashboardView = ({
         if (!newSectionTitle || !newSectionId) return;
         setIsLoading(true);
         try {
-            await createSectionV3(selectedCourse.id, newSectionTitle);
+            await createSection(selectedCourse.id, newSectionTitle);
             await handleSelectCourse(selectedCourse);
             setMessage({ type: 'success', text: 'Section created.' });
             setIsCreatingSection(false);
@@ -135,7 +135,7 @@ export const CourseDashboardView = ({
                 return;
             }
 
-            const currentLessons = await getLessonSummariesV3(selectedSection.id);
+            const currentLessons = await getLessonSummaries(selectedSection.id);
             let importedCount = 0;
             let updatedCount = 0;
 
@@ -144,7 +144,7 @@ export const CourseDashboardView = ({
                 const existingSummary = item.id ? currentLessons.find(l => l.id === item.id) : null;
 
                 if (existingSummary) {
-                    const fullLesson = await getLessonV3(existingSummary.id);
+                    const fullLesson = await getLesson(existingSummary.id);
                     if (fullLesson) {
                         const currentLesson = fullLesson as any;
                         const newChunks = currentLesson.chunks.map((c: any) => {
@@ -185,13 +185,13 @@ export const CourseDashboardView = ({
                         });
 
                         const mergedContent = { ...currentLesson, chunks: newChunks, vocabulary: newVocab };
-                        await updateLessonV3(currentLesson.id, [mergedContent]);
+                        await updateLesson(currentLesson.id, [mergedContent]);
                         updatedCount++;
                     }
                 } else {
                     const lessonId = `lesson-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-                    const lesson = await createLessonV3(selectedCourse.id, selectedSection.id, lessonId);
-                    await updateLessonV3(lesson.id, [item], { sub_lesson_count: 1 });
+                    const lesson = await createLesson(selectedCourse.id, selectedSection.id, lessonId);
+                    await updateLesson(lesson.id, [item], { sub_lesson_count: 1 });
                     importedCount++;
                     await new Promise(resolve => setTimeout(resolve, 10));
                 }
@@ -213,7 +213,7 @@ export const CourseDashboardView = ({
         setIsLoading(true);
         try {
             // Need to fetch full content for all lessons in section
-            const fullLessons = await Promise.all(lessons.map(l => getLessonV3(l.id)));
+            const fullLessons = await Promise.all(lessons.map((l: any) => getLesson(l.id)));
             const validLessons = fullLessons.filter(l => l !== undefined && l !== null) as LessonWithChildren[];
 
             const payload = validLessons.map(l => {
@@ -333,7 +333,7 @@ ${JSON.stringify(payload, null, 2)}`;
                                             onConfirm: async () => {
                                                 setIsLoading(true);
                                                 try {
-                                                    await deleteSectionV3(section.id);
+                                                    await deleteSection(section.id);
                                                     await handleSelectCourse(selectedCourse);
                                                     setSelectedSection(null);
                                                     setLessons([]);
@@ -377,7 +377,7 @@ ${JSON.stringify(payload, null, 2)}`;
                                                         onConfirm: async () => {
                                                             setIsLoading(true);
                                                             try {
-                                                                await deleteAllLessonsInSectionV3(selectedSection.id);
+                                                                await deleteAllLessonsInSection(selectedSection.id);
                                                                 await handleSelectSection(selectedSection);
                                                                 setMessage({ type: 'success', text: 'All lessons cleared.' });
                                                             } catch (e) {
@@ -477,7 +477,7 @@ ${JSON.stringify(payload, null, 2)}`;
                                                         onConfirm: async () => {
                                                             setIsLoading(true);
                                                             try {
-                                                                await deleteLessonV3(lesson.id);
+                                                                await deleteLesson(lesson.id);
                                                                 if (selectedSection) {
                                                                     await handleSelectSection(selectedSection);
                                                                 }
@@ -510,7 +510,7 @@ ${JSON.stringify(payload, null, 2)}`;
                                                             onConfirm: async () => {
                                                                 setIsLoading(true);
                                                                 try {
-                                                                    await mergeLessonsV3(lesson.id, nextLesson.id);
+                                                                    await mergeLessons(lesson.id, nextLesson.id);
                                                                     if (selectedSection) {
                                                                         await handleSelectSection(selectedSection);
                                                                     }
@@ -531,7 +531,7 @@ ${JSON.stringify(payload, null, 2)}`;
                                             <Button variant="ghost" size="small" onClick={async () => {
                                                 setIsLoading(true);
                                                 try {
-                                                    const fullLesson = await getLessonV3(lesson.id);
+                                                    const fullLesson = await getLesson(lesson.id);
                                                     if (fullLesson) setActiveLesson(fullLesson);
                                                 } catch (e) {
                                                     setMessage({ type: 'error', text: 'Failed to load lesson' });

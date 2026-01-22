@@ -5,16 +5,16 @@ import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { Badge } from '@/components/Badge';
 import { TextArea } from '@/components/TextArea';
-import { CourseDataV3, SectionDataV3, deleteCourseV3 } from '@/actions/course-actions';
+import { Course, Section, deleteCourse } from '@/actions/course-actions';
 import { Message, ConfirmDialog } from './types';
 
 export interface CourseSelectionViewProps {
-    courses: CourseDataV3[];
-    selectedCourse: CourseDataV3 | null;
-    sections: SectionDataV3[];
+    courses: Course[];
+    selectedCourse: Course | null;
+    sections: Section[];
     isLoading: boolean;
     handleCreateCourse: (title: string, id: string, desc: string, imgUrl: string) => Promise<void>;
-    handleSelectCourse: (course: CourseDataV3) => Promise<void>;
+    handleSelectCourse: (course: Course) => Promise<void>;
     loadCourses: () => Promise<void>;
     setMessage: (msg: Message | null) => void;
     setIsLoading: (loading: boolean) => void;
@@ -72,7 +72,7 @@ export const CourseSelectionView = ({
                                                 onConfirm: async () => {
                                                     setIsLoading(true);
                                                     try {
-                                                        await deleteCourseV3(c.id);
+                                                        await deleteCourse(c.id);
                                                         await loadCourses();
                                                         setMessage({ type: 'success', text: 'Course deleted.' });
                                                     } catch (e) {

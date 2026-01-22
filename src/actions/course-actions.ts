@@ -3,81 +3,29 @@
 import { supabase } from '@/lib/supabase';
 import { revalidatePath } from 'next/cache';
 
-// ============================================
-// Type Definitions (Matching Supabase Schema)
-// ============================================
+// Import types from centralized definitions
+import type {
+    Course,
+    Section,
+    Chunk,
+    Lesson,
+    VocabularyMaster,
+    LessonVocabulary,
+    Quiz,
+    LessonWithChildren
+} from '@/types/course.types';
 
-export interface Course {
-    id: string;
-    title: string;
-    description: string;
-    img_url: string;
-    structure: any; // JSONB
-    created_at: string;
-    updated_at: string;
-}
-
-export interface Section {
-    id: string;
-    course_id: string;
-    title: string;
-    order: number;
-    created_at: string;
-    updated_at: string;
-}
-
-export interface Chunk {
-    order: number;
-    en: string;
-    kr: string;
-}
-
-export interface Lesson {
-    id: string;
-    course_id: string;
-    section_id: string;
-    order: number;
-    title: string;
-    original_text: string;
-    translation_kr: string;
-    context_desc: string;
-    audio_url?: string;
-    chunks: Chunk[]; // JSONB
-    created_at: string;
-    updated_at: string;
-}
-
-export interface VocabularyMaster {
-    lemma: string;
-    definition: string;
-    part_of_speech: string | null;
-    level?: string | null;
-}
-
-export interface LessonVocabularyMock { // Retaining 'Mock' suffix for compatibility if needed, or just standardizing
-    id?: string; // Added for UI stability
-    word: string;
-    lemma: string;
-    definition: string;
-    part_of_speech?: string | null;
-    level?: string | null;
-    context_match?: boolean;
-}
-
-export interface Quiz {
-    id: string;
-    lesson_id: string;
-    type: string;
-    question: any; // JSONB
-    answer: any;   // JSONB
-    options: any;  // JSONB
-}
-
-// UI Compatible Types
-export interface LessonWithChildren extends Lesson {
-    vocabulary: LessonVocabularyMock[];
-    quizzes: Quiz[];
-}
+// Re-export types for backward compatibility
+export type {
+    Course,
+    Section,
+    Chunk,
+    Lesson,
+    VocabularyMaster,
+    LessonVocabulary,
+    Quiz,
+    LessonWithChildren
+} from '@/types/course.types';
 
 // ============================================
 // Read Actions
@@ -175,7 +123,7 @@ async function getLessonDetails(lesson: Lesson): Promise<LessonWithChildren> {
         `)
         .eq('lesson_id', lesson.id);
 
-    const vocabulary: LessonVocabularyMock[] = vocabData?.map((item: any) => {
+    const vocabulary: LessonVocabulary[] = vocabData?.map((item: any) => {
         return {
             id: item.id,
             word: item.word,
@@ -585,24 +533,8 @@ export async function getLessonSummaries(sectionId: string) {
     });
 }
 
-// Aliases for compatibility
-export const getAllCoursesV3Mock = getAllCourses;
-export const getCourseV3Mock = getCourse;
-export const getSectionsV3Mock = getSections;
-export const getSectionV3Mock = getSection;
-export const getLessonsV3Mock = getLessons;
-export const getLessonV3Mock = getLesson;
-export const getLessonCountV3Mock = getLessonCount;
-
-export const createCourseV3 = createCourse;
-export const createSectionV3 = createSection;
-export const createLessonV3 = createLesson;
-export const updateLessonV3 = updateLesson;
-export const deleteLessonV3 = deleteLesson;
-export const mergeLessonsV3 = mergeLessons;
-export const deleteSectionV3 = deleteSection;
-export const createCourseV3Mock = createCourse; // Stub
-export const deleteCourseV3 = async (id: string) => {
+// Delete Course
+export async function deleteCourse(id: string) {
     const adminSupabase = getAdminClient();
     const { error } = await adminSupabase
         .from('course')
@@ -612,29 +544,4 @@ export const deleteCourseV3 = async (id: string) => {
     if (error) throw new Error(error.message);
     revalidatePath('/admin2');
     return { success: true };
-};
-
-// Missing V3 Exports
-export const getAllCoursesV3 = getAllCourses;
-export const getSectionsV3 = getSections;
-export const getLessonV3 = getLesson;
-export const getLessonSummariesV3 = getLessonSummaries;
-export const getAllLessonsV3 = getAllLessonsForCourse;
-export const deleteAllLessonsInSectionV3 = deleteAllLessonsInSection;
-export const migrateV2toV3 = async () => ({ success: true, stats: { lessons: 0 } }); // No-op stub
-
-// Type Aliases for Compatibility
-export type CourseV3Mock = Course;
-export type SectionV3Mock = Section;
-export type LessonV3Mock = Lesson;
-export type LessonWithChildrenV3Mock = LessonWithChildren;
-export type ChunkV3Mock = Chunk;
-export type VocabV3Mock = LessonVocabularyMock;
-export type QuizV3Mock = Quiz;
-
-export type CourseDataV3 = Course;
-export type SectionDataV3 = Section;
-export type LessonDataV3 = Lesson;
-export type ChunkDataV3 = Chunk;
-export type VocabularyDataV3 = LessonVocabularyMock;
-export type QuizDataV3 = Quiz;
+}

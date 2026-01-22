@@ -5,7 +5,7 @@ import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { Badge } from '@/components/Badge';
 import { TextArea } from '@/components/TextArea';
-import { updateLessonV3, LessonWithChildren } from '@/actions/course-actions';
+import { updateLesson, LessonWithChildren } from '@/actions/course-actions';
 import { Message } from './types';
 
 export interface EditorViewProps {
@@ -57,7 +57,7 @@ export const EditorView = ({
     const handleSave = async () => {
         setIsLoading(true);
         try {
-            const saved = await updateLessonV3(activeLesson.id, [content]);
+            const saved = await updateLesson(activeLesson.id, [content]);
             if (saved) {
                 // Cast saved result if needed, usually returns current lesson data
                 setActiveLesson(saved as LessonWithChildren);

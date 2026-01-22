@@ -5,12 +5,12 @@ import Link from 'next/link';
 import { Card } from '@/components/Card';
 import { Badge } from '@/components/Badge';
 import { getCourseProgress, clearCourseProgress, LessonProgress } from '@/lib/progress';
-import type { LessonWithChildrenV3Mock } from '@/actions/course-actions';
+import type { LessonWithChildren } from '@/actions/course-actions';
 
 interface SectionLessonListProps {
     courseId: string;
     sectionId: string;
-    lessons: LessonWithChildrenV3Mock[];
+    lessons: LessonWithChildren[];
 }
 
 export function SectionLessonList({ courseId, sectionId, lessons }: SectionLessonListProps) {
